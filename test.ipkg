@@ -1,0 +1,18 @@
+package json-test
+
+authors    = "stefan-hoeck"
+version    = 0.0.1
+readme     = "README.md"
+license    = "BSD-3 Clause"
+
+main       = Test.Main
+executable = "runTest"
+
+sourcedir  = "src"
+
+depends    = base        >= 0.3.0
+           , contrib     >= 0.3.0
+           , elab-util   >= 0.2.0
+           , pretty-show >= 0.1.2
+           , sop         >= 0.2.2
+           , hedgehog    >= 0.0.3
