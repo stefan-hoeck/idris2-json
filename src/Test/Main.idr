@@ -108,9 +108,9 @@ prod = map to $ sop $
 
 roundTrip : Eq a => FromJSON a => ToJSON a => Show a => Gen a -> Property
 roundTrip g = property $ do v <- forAll g
-                            let enc = encodeVia JSON v
+                            let enc = encode v
                             footnote enc
-                            Right v === decodeVia JSON enc
+                            Right v === decode enc
 
 prop_unit : Property
 prop_unit = roundTrip $ pure ()

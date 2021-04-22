@@ -11,6 +11,7 @@ module JSON.ToJSON
 import Data.List1
 import Data.Vect
 import JSON.Value
+import Language.JSON
 import Generics.Derive
 
 %language ElabReflection
@@ -28,6 +29,10 @@ s .= val = (s, toJSON val)
 export
 encodeVia : (0 v : Type) -> Encoder v => ToJSON a => a -> String
 encodeVia v val = stringify $ toJSON {v} val
+
+export
+encode : ToJSON a => a -> String
+encode = encodeVia JSON
 
 --------------------------------------------------------------------------------
 --          Implementations
