@@ -7,7 +7,7 @@ Automatically derivable JSON marshallers in the spirit of
 
 Getting started with encoding and decoding is very easy:
 
-```idris2
+```idris
 import JSON
 import Generics.Derive
 
