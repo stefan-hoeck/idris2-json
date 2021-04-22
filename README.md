@@ -27,7 +27,7 @@ record Villain where
 %runElab derive "Villain" [Generic,Meta,Show,Eq,ToJSON1,FromJSON1]
 ```
 
-More examples can be found in the [tutorial](src/Doc/Tutorial.idr).
+More examples can be found in the [tutorial](src/Doc/Tutorial.md).
 
 ### Missing Stuff
 
