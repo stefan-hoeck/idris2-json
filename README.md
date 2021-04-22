@@ -16,7 +16,7 @@ behave. Me wants this too! Here's what's still missing:
           directly to strings (instead of tagged objects)
     - [ ] Option for automatically providing `null` when
           decoding a missing object field
-    - [*] Do not add constructor tag for single-constructor types
+    - [x] Do not add constructor tag for single-constructor types
     - [ ] Encode newtypes directly (without tags for constructor
           or field names.
     - [ ] Options, how sum types should be encoded
@@ -24,7 +24,7 @@ behave. Me wants this too! Here's what's still missing:
             be used and a field for the actual values
       - [ ] As an untagged value (constructors will be tried in
             order when decoding until the first succeeds)
-      - [*] As an object with a single field named after the
+      - [x] As an object with a single field named after the
             constructor
       - [ ] As a two element array
 
