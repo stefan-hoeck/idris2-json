@@ -6,9 +6,6 @@
 |||
 ||| Operators and functionality strongly influenced by Haskell's aeson
 ||| library
-|||
-||| Note: This should eventually be generalized for different
-||| `Value` types and be moved to its own library.
 module JSON.ToJSON
 
 import Data.List1
@@ -20,16 +17,16 @@ import Generics.Derive
 
 public export
 interface ToJSON a where
-  toJSON : Value v => a -> v
+  toJSON : forall v,obj . Value v obj => a -> v
 
 infixr 8 .=
 
 export
-(.=) : ToJSON a => Value v => String -> a -> (String,v)
+(.=) : ToJSON a => Value v obj => String -> a -> (String,v)
 s .= val = (s, toJSON val)
 
 export
-encodeVia : (0 v : Type) => Value v => ToJSON a => a -> String
+encodeVia : (0 v : Type) => Value v obj => ToJSON a => a -> String
 encodeVia val = stringify $ toJSON {v} val
 
 --------------------------------------------------------------------------------
@@ -103,7 +100,7 @@ export
 --          SOP Implementations
 --------------------------------------------------------------------------------
 
-np : Value v => NP (ToJSON . f) ks => NP f ks -> v
+np : Value v obj => NP (ToJSON . f) ks => NP f ks -> v
 np = array . collapseNP . hcmap (ToJSON . f) toJSON
 
 export
@@ -124,7 +121,7 @@ export
 indices : NP f ks ->  NP (K Bits32) ks
 indices np = unfoldNP np (+1) (the Bits32 0)
 
-ns : Value v => (all : NP (ToJSON . f) ks) => NS f ks -> v
+ns : Value v obj => (all : NP (ToJSON . f) ks) => NS f ks -> v
 ns = collapseNS . hcliftA2 (ToJSON . f) enc (indices all)
   where enc : ToJSON (f a) => Bits32 -> f a -> v
         enc ix v = object [show ix .= v]
@@ -139,36 +136,37 @@ NP (ToJSON . f) ks => ToJSON (NS f ks) where
 
 -- Converts a single applied constructor, without pairing it
 -- with its name.
-toJSONC1 : Value v => NP (ToJSON . f) ks => ConInfo ks -> NP f ks -> v
+toJSONC1 : Value v obj => NP (ToJSON . f) ks => ConInfo ks -> NP f ks -> v
 toJSONC1 info args = maybe (toJSON args) encRecord (argNames info)
 
   where encRecord : NP (K String) ks -> v
         encRecord ns = object (collapseNP $ hcliftA2 (ToJSON . f) (.=) ns args)
 
-toJSONSOP1 : Value v => NP (ToJSON . f) ks => TypeInfo [ks] -> SOP f [ks] -> v
+toJSONSOP1 : Value v obj => NP (ToJSON . f) ks => TypeInfo [ks] -> SOP f [ks] -> v
 toJSONSOP1 (MkTypeInfo _ _ (v :: [])) (MkSOP (Z x)) = toJSONC1 v x
 toJSONSOP1 (MkTypeInfo _ _ (v :: [])) (MkSOP (S x)) impossible
 
 -- Converts a single applied constructor, pairing it with its name
-toJSONC : Value v => NP (ToJSON . f) ks => ConInfo ks -> NP f ks -> v
+toJSONC : Value v obj => NP (ToJSON . f) ks => ConInfo ks -> NP f ks -> v
 toJSONC i@(MkConInfo _ n _) np = object [(n, toJSONC1 i np)]
 
-toJSONSOP :  Value v
+toJSONSOP :  Value v obj
           => (all : POP (ToJSON . f) kss)
           => TypeInfo kss -> SOP f kss -> v
 toJSONSOP {all = MkPOP _} (MkTypeInfo _ _ cons) =
   collapseNS . hcliftA2 (NP $ ToJSON . f) toJSONC cons . unSOP
 
 export
-genToJSON1 : Value v => Meta a [ks] => NP ToJSON ks => a -> v
+genToJSON1 : Value v obj => Meta a [ks] => NP ToJSON ks => a -> v
 genToJSON1 = toJSONSOP1 (metaFor a) . from
 
 export
-genToJSON : Value v => Meta a code => POP ToJSON code => a -> v
+genToJSON : Value v obj => Meta a code => POP ToJSON code => a -> v
 genToJSON = toJSONSOP (metaFor a) . from
 
 public export
-mkToJSON : (toJSON : forall v . Value v => a -> v) -> ToJSON a
+mkToJSON :  {0 a : Type}
+         -> (toJSON : forall v,obj . Value v obj => a -> v) -> ToJSON a
 mkToJSON = %runElab check (var $ singleCon "ToJSON")
 
 namespace Derive
