@@ -26,8 +26,8 @@ export
 s .= val = (s, toJSON val)
 
 export
-encodeVia : (0 v : Type) => Value v obj => ToJSON a => a -> String
-encodeVia val = stringify $ toJSON {v} val
+encodeVia : (0 v : Type) -> Value v obj => ToJSON a => a -> String
+encodeVia v val = stringify $ toJSON {v} val
 
 --------------------------------------------------------------------------------
 --          Implementations
