@@ -3,6 +3,31 @@
 Automatically derivable JSON marshallers in the spirit of
 [Haskell's aeson](https://hackage.haskell.org/package/aeson).
 
+### Missing Stuff
+
+In aeson it is possible to adjust via an `Option` data type,
+how generically derived implementations of `ToJSON` and `FromJSON`
+behave. Me wants this too! Here's what's still missing:
+
+  - [ ] Configure generic encoders and decoders
+    - [ ] Option for adjusting field names
+    - [ ] Option for adjusting constructor names
+    - [ ] Option for converting all-nullary sum types
+          directly to strings (instead of tagged objects)
+    - [ ] Option for automatically providing `null` when
+          decoding a missing object field
+    - [*] Do not add constructor tag for single-constructor types
+    - [ ] Encode newtypes directly (without tags for constructor
+          or field names.
+    - [ ] Options, how sum types should be encoded
+      - [ ] As a tagged object, with a field for the constructor to
+            be used and a field for the actual values
+      - [ ] As an untagged value (constructors will be tried in
+            order when decoding until the first succeeds)
+      - [*] As an object with a single field named after the
+            constructor
+      - [ ] As a two element array
+
 ### Dependencies
 
 Besides `base` and `contrib`, the following dependencies are needed to
