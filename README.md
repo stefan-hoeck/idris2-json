@@ -1,6 +1,7 @@
 # idris2-json
 
-Automatically derivable JSON marshallers in the spirit of Haskell's aeson.
+Automatically derivable JSON marshallers in the spirit of
+[Haskell's aeson](https://hackage.haskell.org/package/aeson).
 
 ### Dependencies
 
