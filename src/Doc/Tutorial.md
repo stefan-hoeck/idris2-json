@@ -81,6 +81,9 @@ record Villain where
   cronies : List Villain
 
 %runElab derive "Villain" [Generic,Meta,Show,Eq,ToJSON1]
+
+gorgar : Villain
+gorgar = MkVillain "Gorgar" 2000 Dragon [MkVillain "Igor" 10 Imp []]
 ```
 
 The `ToJSON1` encoder can be used for data types with only
@@ -91,3 +94,10 @@ For instance, the automatically derived implementation for `MonsterClass`
 will add an empty object field for every constructor name. It would
 probably make more sense to encode the constructors directly as
 `String`s, as was manually done for `Race` and `Class` above.
+
+Feel free to load this tutorial in a REPL session, and give
+the encoders a try: `rlwrap idris2 --find-ipkg src/Doc/Tutorial.md`:
+
+```
+:exec putStrLn $ encode gorgar
+```

@@ -3,6 +3,32 @@
 Automatically derivable JSON marshallers in the spirit of
 [Haskell's aeson](https://hackage.haskell.org/package/aeson).
 
+### Usage Example
+
+Getting started with encoding and decoding is very easy:
+
+```idris2
+import JSON
+import Generics.Derive
+
+%language ElabReflection
+
+data MonsterClass = Imp | Goblin | Orc | Dragon
+
+%runElab derive "MonsterClass" [Generic,Meta,Show,Eq,ToJSON,FromJSON]
+
+record Villain where
+  constructor MkVillain
+  name    : String
+  hp      : Nat
+  class   : MonsterClass
+  cronies : List Villain
+
+%runElab derive "Villain" [Generic,Meta,Show,Eq,ToJSON1,FromJSON1]
+```
+
+More examples can be found in the [tutorial](src/Doc/Tutorial.idr).
+
 ### Missing Stuff
 
 In aeson it is possible to adjust via an `Option` data type,
