@@ -12,28 +12,31 @@ import Generics.Derive
 --          Fast Eq for Nat
 --------------------------------------------------------------------------------
 
-||| The default Eq for Nat runs in O(n), which leads to stack overflows
-||| for large Nats
-export
+-- The default Eq for Nat runs in O(n), which leads to stack overflows
+-- for large Nats
 [FastNatEq] Eq Nat where
   (==) = (==) `on` natToInteger
   
-||| The default Ord for Nat runs in O(n), which leads to stack overflows
-||| for large Nats
-export
+-- The default Ord for Nat runs in O(n), which leads to stack overflows
+-- for large Nats
 [FastNatOrd] Ord Nat using FastNatEq where
   compare = compare `on` natToInteger
 
 --------------------------------------------------------------------------------
---          Sum Type
+--          Elab Deriving
 --------------------------------------------------------------------------------
 
+-- example newtype
 record Newtype where
   constructor MkNewtype
   field : String
 
 %runElab derive "Newtype" [Generic,Meta,Show,Eq,NewtypeToJSON,NewtypeFromJSON]
 
+-- sum type with default encoding behavior: this will
+-- be encoded as a mapping from constructor argument names
+-- to values including a special field called "tag" with the
+-- encoded constructor name.
 data Sum : (a : Type) -> Type where
   Con1 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum a
   Con2 : (treasure : List a) -> (weight : Bits64) -> Sum a
@@ -41,6 +44,10 @@ data Sum : (a : Type) -> Type where
 
 %runElab derive "Sum" [Generic,Meta,Show,Eq,ToJSON,FromJSON]
 
+-- this sum type will be encoded in the same manner as `Sum`
+-- but without the additional "tag" field: This should
+-- only be used if not two constructors have the same
+-- type and field names.
 data Sum2 : (a : Type) -> Type where
   Con21 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum2 a
   Con22 : (treasure : List a) -> (weight : Bits64) -> Sum2 a
@@ -54,6 +61,10 @@ ToJSON a => ToJSON (Sum2 a) where
 FromJSON a => FromJSON (Sum2 a) where
   fromJSON = genFromJSON UntaggedValue
 
+-- this sum type will be encoded as `Sum` but instead of adding
+-- a "tag" for the constructor name, it will be wrapped up
+-- as a single field object, the field being named as the
+-- constructor used.
 data Sum3 : (a : Type) -> Type where
   Con31 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum3 a
   Con32 : (treasure : List a) -> (weight : Bits64) -> Sum3 a
@@ -67,6 +78,9 @@ ToJSON a => ToJSON (Sum3 a) where
 FromJSON a => FromJSON (Sum3 a) where
   fromJSON = genFromJSON ObjectWithSingleField
 
+-- this sum will be encoded as an array of two elements:
+-- the first corresponding to the constructor name, the second
+-- to the encoded value.
 data Sum4 : (a : Type) -> Type where
   Con41 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum4 a
   Con42 : (treasure : List a) -> (weight : Bits64) -> Sum4 a
@@ -80,6 +94,8 @@ ToJSON a => ToJSON (Sum4 a) where
 FromJSON a => FromJSON (Sum4 a) where
   fromJSON = genFromJSON TwoElemArray
 
+-- this sum will be encoded as a tagged object with custom
+-- names for the tag and content field
 data Sum5 : (a : Type) -> Type where
   Con51 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum5 a
   Con52 : (treasure : List a) -> (weight : Bits64) -> Sum5 a
@@ -93,6 +109,9 @@ ToJSON a => ToJSON (Sum5 a) where
 FromJSON a => FromJSON (Sum5 a) where
   fromJSON = genFromJSON (TaggedObject "v" "c")
 
+-- since records have only one constructor, they can be encoded
+-- without having to care about the different techniques to
+-- distinguish between constructors
 record ARecord where
   constructor MkRecord
   anInt   : Integer
@@ -101,6 +120,8 @@ record ARecord where
 
 %runElab derive "ARecord" [Generic,Meta,Show,Eq,RecordToJSON,RecordFromJSON]
 
+-- enum types (all nullary constructors) can be encoded just
+-- as a string representing the constructor's name
 data Weekday = Monday
              | Tuesday
              | Wednesday
@@ -163,37 +184,17 @@ vect13 = vect 13
 newtype : Gen String
 newtype = string20 unicode16
 
--- Yeah, copy-paste is the devil, but I want to get this tested quickly.
+sumSop : Gen (SOP I [ [String,Bits32,Bool]
+                    , [List Int, Bits64]
+                    , [Maybe Int, Either Bool Int]
+                    ])
+sumSop = sop $ MkPOP [ [ string20 alphaNum, bits32All, bool ]
+                       , [ list20 intAll, bits64All ]
+                       , [ maybe intAll, either bool intAll ]
+                       ]
+
 sum : Gen (Sum Int)
-sum = map to $ sop $ MkPOP [ [ string20 alphaNum, bits32All, bool ]
-                           , [ list20 intAll, bits64All ]
-                           , [ maybe intAll, either bool intAll ]
-                           ]
-
-sum2 : Gen (Sum2 Int)
-sum2 = map to $ sop $ MkPOP [ [ string20 alphaNum, bits32All, bool ]
-                            , [ list20 intAll, bits64All ]
-                            , [ maybe intAll, either bool intAll ]
-                            ]
-
-sum3 : Gen (Sum3 Int)
-sum3 = map to $ sop $ MkPOP [ [ string20 alphaNum, bits32All, bool ]
-                            , [ list20 intAll, bits64All ]
-                            , [ maybe intAll, either bool intAll ]
-                            ]
-
-sum4 : Gen (Sum4 Int)
-sum4 = map to $ sop $ MkPOP [ [ string20 alphaNum, bits32All, bool ]
-                            , [ list20 intAll, bits64All ]
-                            , [ maybe intAll, either bool intAll ]
-                            ]
-
-sum5 : Gen (Sum5 Int)
-sum5 = map to $ sop $ MkPOP [ [ string20 alphaNum, bits32All, bool ]
-                            , [ list20 intAll, bits64All ]
-                            , [ maybe intAll, either bool intAll ]
-                            ]
-
+sum = map to sumSop
 
 rec : Gen ARecord
 rec = map to $ sop $
@@ -276,19 +277,19 @@ prop_string : Property
 prop_string = roundTrip $ string20 unicode16
 
 prop_sum : Property
-prop_sum = roundTrip sum
+prop_sum = roundTrip {a = Sum Int} (map to sumSop)
 
 prop_sum2 : Property
-prop_sum2 = roundTrip sum2
+prop_sum2 = roundTrip {a = Sum2 Int} (map to sumSop)
 
 prop_sum3 : Property
-prop_sum3 = roundTrip sum3
+prop_sum3 = roundTrip {a = Sum3 Int} (map to sumSop)
 
 prop_sum4 : Property
-prop_sum4 = roundTrip sum4
+prop_sum4 = roundTrip {a = Sum4 Int} (map to sumSop)
 
 prop_sum5 : Property
-prop_sum5 = roundTrip sum5
+prop_sum5 = roundTrip {a = Sum5 Int} (map to sumSop)
 
 prop_vect : Property
 prop_vect = roundTrip $ vect13 intAll
