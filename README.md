@@ -47,23 +47,23 @@ how generically derived implementations of `ToJSON` and `FromJSON`
 behave. Me wants this too! Here's what's still missing:
 
   - [ ] Configure generic encoders and decoders
-    - [ ] Option for adjusting field names
-    - [ ] Option for adjusting constructor names
+    - [x] Option for adjusting field names
+    - [x] Option for adjusting constructor names
     - [ ] Option for converting all-nullary sum types
           directly to strings (instead of tagged objects)
-    - [ ] Option for automatically providing `null` when
+    - [x] Option for automatically providing `null` when
           decoding a missing object field
     - [x] Do not add constructor tag for single-constructor types
-    - [ ] Encode newtypes directly (without tags for constructor
+    - [x] Encode newtypes directly (without tags for constructor
           or field names.
-    - [ ] Options, how sum types should be encoded
-      - [ ] As a tagged object, with a field for the constructor to
+    - [x] Options, how sum types should be encoded
+      - [x] As a tagged object, with a field for the constructor to
             be used and a field for the actual values
-      - [ ] As an untagged value (constructors will be tried in
+      - [x] As an untagged value (constructors will be tried in
             order when decoding until the first succeeds)
       - [x] As an object with a single field named after the
             constructor
-      - [ ] As a two element array
+      - [x] As a two element array
 
 ### Dependencies
 

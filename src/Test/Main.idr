@@ -28,6 +28,12 @@ export
 --          Sum Type
 --------------------------------------------------------------------------------
 
+record Newtype where
+  constructor MkNewtype
+  field : String
+
+%runElab derive "Newtype" [Generic,Meta,Show,Eq,NewtypeToJSON,NewtypeFromJSON]
+
 data Sum : (a : Type) -> Type where
   Con1 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum a
   Con2 : (treasure : List a) -> (weight : Bits64) -> Sum a
@@ -35,13 +41,75 @@ data Sum : (a : Type) -> Type where
 
 %runElab derive "Sum" [Generic,Meta,Show,Eq,ToJSON,FromJSON]
 
-record Prod where
-  constructor MkProd
+data Sum2 : (a : Type) -> Type where
+  Con21 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum2 a
+  Con22 : (treasure : List a) -> (weight : Bits64) -> Sum2 a
+  Con23 : (foo : Maybe a) -> (bar : Either Bool a) -> Sum2 a
+
+%runElab derive "Sum2" [Generic,Meta,Show,Eq]
+
+ToJSON a => ToJSON (Sum2 a) where
+  toJSON = genToJSON UntaggedValue
+
+FromJSON a => FromJSON (Sum2 a) where
+  fromJSON = genFromJSON UntaggedValue
+
+data Sum3 : (a : Type) -> Type where
+  Con31 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum3 a
+  Con32 : (treasure : List a) -> (weight : Bits64) -> Sum3 a
+  Con33 : (foo : Maybe a) -> (bar : Either Bool a) -> Sum3 a
+
+%runElab derive "Sum3" [Generic,Meta,Show,Eq]
+
+ToJSON a => ToJSON (Sum3 a) where
+  toJSON = genToJSON ObjectWithSingleField
+
+FromJSON a => FromJSON (Sum3 a) where
+  fromJSON = genFromJSON ObjectWithSingleField
+
+data Sum4 : (a : Type) -> Type where
+  Con41 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum4 a
+  Con42 : (treasure : List a) -> (weight : Bits64) -> Sum4 a
+  Con43 : (foo : Maybe a) -> (bar : Either Bool a) -> Sum4 a
+
+%runElab derive "Sum4" [Generic,Meta,Show,Eq]
+
+ToJSON a => ToJSON (Sum4 a) where
+  toJSON = genToJSON TwoElemArray
+
+FromJSON a => FromJSON (Sum4 a) where
+  fromJSON = genFromJSON TwoElemArray
+
+data Sum5 : (a : Type) -> Type where
+  Con51 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum5 a
+  Con52 : (treasure : List a) -> (weight : Bits64) -> Sum5 a
+  Con53 : (foo : Maybe a) -> (bar : Either Bool a) -> Sum5 a
+
+%runElab derive "Sum5" [Generic,Meta,Show,Eq]
+
+ToJSON a => ToJSON (Sum5 a) where
+  toJSON = genToJSON (TaggedObject "v" "c")
+
+FromJSON a => FromJSON (Sum5 a) where
+  fromJSON = genFromJSON (TaggedObject "v" "c")
+
+record ARecord where
+  constructor MkRecord
   anInt   : Integer
   perhaps : Maybe (Sum Int)
   foo     : Either String Bool
 
-%runElab derive "Prod" [Generic,Meta,Show,Eq,ToJSON1,FromJSON1]
+%runElab derive "ARecord" [Generic,Meta,Show,Eq,RecordToJSON,RecordFromJSON]
+
+data Weekday = Monday
+             | Tuesday
+             | Wednesday
+             | Thursday
+             | Friday
+             | Saturday
+             | Sunday
+
+%runElab derive "Weekday" [Generic,Meta,Show,Eq,EnumToJSON,EnumFromJSON]
 
 --------------------------------------------------------------------------------
 --          Generators
@@ -92,15 +160,47 @@ string20Unicode16 = string20 unicode16
 vect13 : Gen a -> Gen (Vect 13 a)
 vect13 = vect 13
 
+newtype : Gen String
+newtype = string20 unicode16
+
+-- Yeah, copy-paste is the devil, but I want to get this tested quickly.
 sum : Gen (Sum Int)
 sum = map to $ sop $ MkPOP [ [ string20 alphaNum, bits32All, bool ]
                            , [ list20 intAll, bits64All ]
                            , [ maybe intAll, either bool intAll ]
                            ]
 
-prod : Gen Prod
-prod = map to $ sop $
-       MkPOP [[integer128, maybe sum, either string20Unicode16 bool]]
+sum2 : Gen (Sum2 Int)
+sum2 = map to $ sop $ MkPOP [ [ string20 alphaNum, bits32All, bool ]
+                            , [ list20 intAll, bits64All ]
+                            , [ maybe intAll, either bool intAll ]
+                            ]
+
+sum3 : Gen (Sum3 Int)
+sum3 = map to $ sop $ MkPOP [ [ string20 alphaNum, bits32All, bool ]
+                            , [ list20 intAll, bits64All ]
+                            , [ maybe intAll, either bool intAll ]
+                            ]
+
+sum4 : Gen (Sum4 Int)
+sum4 = map to $ sop $ MkPOP [ [ string20 alphaNum, bits32All, bool ]
+                            , [ list20 intAll, bits64All ]
+                            , [ maybe intAll, either bool intAll ]
+                            ]
+
+sum5 : Gen (Sum5 Int)
+sum5 = map to $ sop $ MkPOP [ [ string20 alphaNum, bits32All, bool ]
+                            , [ list20 intAll, bits64All ]
+                            , [ maybe intAll, either bool intAll ]
+                            ]
+
+
+rec : Gen ARecord
+rec = map to $ sop $
+      MkPOP [[integer128, maybe sum, either string20Unicode16 bool]]
+
+weekday : Gen Weekday
+weekday = element [Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday]
 
 --------------------------------------------------------------------------------
 --          Properties
@@ -166,8 +266,11 @@ prop_ns = roundTrip $ ns [ integer128, bool, unicode16, maybe string20Ascii ]
 prop_pair : Property
 prop_pair = roundTrip [| (,) (list1_20 bool) (maybe ascii) |]
 
-prop_prod : Property
-prop_prod = roundTrip prod
+prop_rec : Property
+prop_rec = roundTrip rec
+
+prop_newtype : Property
+prop_newtype = roundTrip newtype
 
 prop_string : Property
 prop_string = roundTrip $ string20 unicode16
@@ -175,8 +278,23 @@ prop_string = roundTrip $ string20 unicode16
 prop_sum : Property
 prop_sum = roundTrip sum
 
+prop_sum2 : Property
+prop_sum2 = roundTrip sum2
+
+prop_sum3 : Property
+prop_sum3 = roundTrip sum3
+
+prop_sum4 : Property
+prop_sum4 = roundTrip sum4
+
+prop_sum5 : Property
+prop_sum5 = roundTrip sum5
+
 prop_vect : Property
 prop_vect = roundTrip $ vect13 intAll
+
+prop_weekday : Property
+prop_weekday = roundTrip weekday
 
 main : IO ()
 main = ignore . checkGroup . withTests 10000 $ MkGroup "JSON" [
@@ -194,12 +312,18 @@ main = ignore . checkGroup . withTests 10000 $ MkGroup "JSON" [
           , ("prop_list1", prop_list1)
           , ("prop_maybe", prop_maybe)
           , ("prop_nat", prop_nat)
+          , ("prop_newtype", prop_newtype)
           , ("prop_np", prop_np)
           , ("prop_ns", prop_ns)
           , ("prop_pair", prop_pair)
-          , ("prop_prod", prop_prod)
+          , ("prop_rec", prop_rec)
           , ("prop_string", prop_string)
           , ("prop_sum", prop_sum)
+          , ("prop_sum2", prop_sum2)
+          , ("prop_sum3", prop_sum3)
+          , ("prop_sum4", prop_sum4)
+          , ("prop_sum5", prop_sum5)
           , ("prop_unit", prop_unit)
           , ("prop_vect", prop_vect)
+          , ("prop_weekday", prop_weekday)
           ]

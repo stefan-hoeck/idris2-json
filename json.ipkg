@@ -11,4 +11,5 @@ depends    = base        >= 0.3.0
 modules = JSON
         , JSON.Value
         , JSON.FromJSON
+        , JSON.Option
         , JSON.ToJSON
