@@ -53,53 +53,45 @@ public export
 defaultTaggedObject : SumEncoding
 defaultTaggedObject = TaggedObject "tag" "contents"
 
-||| Options that specify how to encode/decode your datatype to/from JSON.
 public export
-record Options where
-  constructor MkOptions
-  ||| Function applied to field labels. Handy for removing common record
-  ||| prefixes for example.
-  fieldLabelModifier     : String -> String
+adjustConnames : (String -> String) -> TypeInfo' k kss -> TypeInfo' k kss
+adjustConnames f = record { constructors $= mapNP adjCon }
+  where adjCon : ConInfo_ k ks -> ConInfo_ k ks
+        adjCon (MkConInfo ns n fs) = MkConInfo ns (f n) fs
 
-  ||| Function applied to constructor tags which could be handy for
-  ||| lower-casing them for example.
-  constructorTagModifier : String -> String
-
-  ||| If True the constructors of a datatype, with all nullary constructors,
-  ||| will be encoded to just a string with the constructor tag. If False the
-  ||| encoding will always follow the sumEncoding.
-  allNullaryToStringTag  : Bool
-
-  ||| Specifies how to encode constructors of a sum datatype.
-  sumEncoding            : SumEncoding
-
-  ||| Hide the field name when a record constructor has only one field, like a
-  ||| newtype.
-  unwrapUnaryRecords     : Bool
-
-  ||| Encode types with a single constructor as sums, so that
-  ||| allNullaryToStringTag and sumEncoding apply.
-  tagSingleConstructors  : Bool
-
-||| Corresponds to
-|||
-||| ```idris
-||| defaultOptions = MkOptions
-|||                    { fieldLabelModifier      = id
-|||                    , constructorTagModifier  = id
-|||                    , allNullaryToStringTag   = True
-|||                    , sumEncoding             = defaultTaggedObject
-|||                    , unwrapUnaryRecords      = False
-|||                    , tagSingleConstructors   = False
-|||                    }
-||| ```
 public export
-defaultOptions : Options
-defaultOptions = MkOptions
-                   { fieldLabelModifier      = id
-                   , constructorTagModifier  = id
-                   , allNullaryToStringTag   = True
-                   , sumEncoding             = defaultTaggedObject
-                   , unwrapUnaryRecords      = False
-                   , tagSingleConstructors   = False
-                   }
+adjustInfo :  (adjFields : String -> String)
+           -> (adjCons : String -> String)
+           -> TypeInfo' k kss
+           -> TypeInfo' k kss
+adjustInfo af ac = record { constructors $= mapNP adjCon }
+  where adjArg : ArgName -> ArgName
+        adjArg (NamedArg ix n) = NamedArg ix $ af n
+        adjArg arg = arg
+
+        adjCon : ConInfo_ k ks -> ConInfo_ k ks
+        adjCon (MkConInfo ns n fs) = MkConInfo ns (ac n) (mapNP adjArg fs)
+
+public export
+adjustFieldNames : (String -> String) -> TypeInfo' k kss -> TypeInfo' k kss
+adjustFieldNames f = adjustInfo f id
+
+||| Witness that a list of list of types (representing the
+||| constructors and fields of an ADT) represents an enum type, i.e.
+||| that all constructors are nullary.
+public export
+data EnumType : (kss : List $ List k) -> Type where
+  EZ : EnumType Nil
+  ES : EnumType kss -> EnumType ([] :: kss)
+
+public export
+0 enumTail : EnumType (ks :: kss) -> EnumType kss
+enumTail (ES x) = x
+
+public export
+nullaryInjections :  NP_ (List k) (ConInfo_ k) kss
+                  -> (0 et : EnumType kss)
+                  -> NP_ (List k) (K (NS_ (List k) (NP f) kss)) kss
+nullaryInjections []         _  = []
+nullaryInjections (MkConInfo _ _ [] :: vs) es =
+  Z [] :: mapNP (\ns => S ns) (nullaryInjections vs (enumTail es))

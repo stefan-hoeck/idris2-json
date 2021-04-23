@@ -9,6 +9,7 @@
 module JSON.FromJSON
 
 import JSON.ToJSON
+import JSON.Option
 import JSON.Value
 import Language.JSON
 
@@ -435,18 +436,16 @@ inj : NP g ks -> NP (Injection f ks) ks
 inj []       = []
 inj (_ :: t) = Z :: mapNP (S .) (inj t)
 
+firstSuccess :  NP (K (Parser v a)) ts -> Parser v a
+firstSuccess []        _ = fail #"Can't parse nullary sum"#
+firstSuccess (f :: []) o = f o
+firstSuccess (f :: fs) o = f o `orElse` firstSuccess fs o
+
 ns : Value v obj =>
      (all : NP (FromJSON . f) ks) => Parser v (NS f ks)
-ns = withObject "NS" $ getFirst 
+ns = withObject "NS" $ firstSuccess 
                      $ hcliftA2 (FromJSON . f) parse (inj all) (indices all)
-  where getFirst :  NP (K (obj -> Result (NS f ks))) ts
-                 -> obj
-                 -> Result (NS f ks)
-        getFirst []        _ = fail #"Can't parse nullary sum"#
-        getFirst (f :: []) o = f o
-        getFirst (f :: fs) o = f o `orElse` getFirst fs o
-
-        parse : FromJSON (f a) =>
+  where parse : FromJSON (f a) =>
                 (f a -> NS f ks) -> Bits32 -> obj -> Result (NS f ks)
         parse f ix o = map f (o .: show ix)
 
@@ -454,60 +453,178 @@ export
 NP (FromJSON . f) ks => FromJSON (NS f ks) where
   fromJSON = ns
 
+||| Decodes a newtype-like sum of products
+||| (exactly one single value constructor) by wrapping
+||| the decoded value in `MkSOP . Z`.
+export
+sopNewtype : Value v obj => FromJSON (f k) => Parser v (SOP f [[k]])
+sopNewtype = map (MkSOP . Z) . fromJSON
+
+consAsEnum :  Value v obj
+           => String
+           -> NP_ (List k) (ConInfo_ k) kss
+           -> (0 prf : EnumType kss)
+           -> Parser v (NS_ (List k) (NP_ k f) kss)
+consAsEnum tn np prf =
+  withString tn \s => firstSuccess (hliftA2 run np (nullaryInjections np prf)) s
+  where run :  ConInfo_ k ks
+            -> NS_ (List k) (NP f) kss
+            -> Parser String (NS_ (List k) (NP f) kss)
+        run i res s = if i.conName == s then Right res
+                                        else fail #"expected \#{i.conName}"#
+
+||| Decodes an enum-like sum of products
+||| (only nullary constructors) by trying to extract one of the
+||| constructors' name
+export
+sopEnum :  Value v obj
+        => TypeInfo' k kss
+        -> {auto 0 prf : EnumType kss}
+        -> Parser v (SOP f kss)
+sopEnum (MkTypeInfo _ tn cs) v = MkSOP <$> consAsEnum tn cs prf v
+
+-- Decodes an applied, record-like constructor as list of key-value pairs.
+conFields : Value v obj => NP (FromJSON . f) ks =>
+            String -> NP (K String) ks -> Parser v (NP f ks)
+conFields cn names = withObject cn \o =>
+                       hctraverse (FromJSON . f) (parseField o) names
+
+untagged : Value v obj => NP (FromJSON . f) ks =>
+           ConInfo ks -> Parser v (NP f ks)
+untagged info = maybe fromJSON (conFields info.conName) (argNames info)
+
+||| Decodes a single-constructor sum of products. The
+||| constructor's name is ignored.
+export
+sopRecord : Value v obj => NP (FromJSON . f) ks =>
+            TypeInfo [ks] -> Parser v (SOP f [ks])
+sopRecord (MkTypeInfo _ n [i]) v = map (MkSOP . Z) (untagged i v) <?> Key n
+
+-- Decodes an applied constructor as a tagged object, if it is record-like,
+-- that is, all fields do have a field name. Otherwise, it is
+-- encoded as a two-field object, one field for the constructor's name
+-- the other for the encoded heterogeneous array.
+tagged :  Value v obj
+       => NP (FromJSON . f) ks
+       => (tagField : String)
+       -> (contentField : String)
+       -> ConInfo ks
+       -> Parser v (NP f ks)
+tagged tf cf ci v =
+  do nm <- withObject ci.conName (.: tf) v
+     if nm == ci.conName
+        then case argNames ci of
+                  Nothing => withObject ci.conName (.: cf) v
+                  Just ns => conFields ci.conName ns v
+        else fail #"expected \#{ci.conName}"#
+
+-- Decodes a constructer as a single-field object. The constructor's name
+-- is used as the field name.
+asObject : Value v obj => NP (FromJSON . f) ks =>
+           (typeName : String) -> ConInfo ks -> Parser v (NP f ks)
+asObject tn i@(MkConInfo _ n _) =
+  withObject tn \o => explicitParseField (untagged i) o n
+
+-- Decodes a single constructor as a two element array: The first element
+-- being the constructor's name, the second its encoded values.
+asTwoElemArray : Value v obj => NP (FromJSON . f) ks =>
+                 (typeName : String) -> ConInfo ks -> Parser v (NP f ks)
+asTwoElemArray tn i@(MkConInfo _ cn _) =
+  withArray tn \vs => case vs of
+                           [n,c] => do n2 <- fromJSON n
+                                       if n2 == cn
+                                          then untagged i c
+                                          else fail #"expected \#{cn} but got \#{n2}"#
+                           _     => fail #"expected 2-element array"#
+
+||| Decodes a sum of products as specified by the passed
+||| `SumEncoding` (see its documentation for details) using
+||| the given `TypeInfo` to decode constructor and argument names.
+|||
+||| See also `sopRecord` for decoding values with a single constructor,
+||| `sopEnum` for decoding enum types (only nullary constructors),
+||| and `sopNewtype` for decoding newtype wrappers.
+export
+sop : Value v obj
+    => (all : POP (FromJSON . f) kss)
+    => SumEncoding
+    -> TypeInfo' k kss
+    -> Parser v (SOP_ k f kss)
+sop {all = MkPOP nps} enc (MkTypeInfo _ tn cs) =
+  case enc of
+       UntaggedValue         => impl untagged
+       ObjectWithSingleField => impl (asObject tn)
+       TwoElemArray          => impl (asTwoElemArray tn)
+       (TaggedObject tf cf)  => impl (tagged tf cf)
+
+  where injSOP : NP_ (List k) g tss -> NP_ (List k) (InjectionSOP f tss) tss
+        injSOP np = hmap (MkSOP .) $ inj {ks = tss} np
+
+        impl : (forall ks . NP (FromJSON . f) ks =>
+                            ConInfo ks -> Parser v (NP f ks))
+             -> Parser v (SOP f kss)
+        impl g = firstSuccess $ hcliftA2 (NP $ FromJSON . f) apply (injSOP nps) cs
+          where apply :  NP_ k (FromJSON . f) ts
+                      => (NP_ k f ts -> SOP_ k f kss)
+                      -> ConInfo_ k ts
+                      -> Parser v (SOP_ k f kss)
+                apply f c = map f . g c
+
+--------------------------------------------------------------------------------
+--          Generic Decoders
+--------------------------------------------------------------------------------
+
+||| Generic version of `sopNewtype`.
+export
+genNewtypeFromJSON : Value v obj => Generic a [[k]] => FromJSON k => Parser v a
+genNewtypeFromJSON = map to . sopNewtype
+
+||| Generic version of `sopEnum`.
+export
+genEnumFromJSON :  Value v obj => Meta a kss => {auto 0 prf : EnumType kss}
+                -> Parser v a
+genEnumFromJSON = map to . sopEnum (metaFor a)
+
+||| Like `genEnumFromJSON`, but uses the given function to adjust
+||| constructor names before being used as tags.
+export
+genEnumFromJSON' :  Value v obj => Meta a kss => {auto 0 prf : EnumType kss}
+                 -> (String -> String) -> Parser v a
+genEnumFromJSON' f = let meta = adjustConnames f (metaFor a)
+                      in map to . sopEnum meta {prf}
+
+||| Generic version of `sopRecord`.
+export
+genRecordFromJSON : Value v obj => Meta a [ks] => NP FromJSON ks => Parser v a
+genRecordFromJSON = map to . sopRecord (metaFor a)
+
+||| Like `genRecordFromJSON`, but uses the given function to adjust
+||| field names before being used as tags.
+export
+genRecordFromJSON' : Value v obj => Meta a [ks] => NP FromJSON ks =>
+                     (String -> String) -> Parser v a
+genRecordFromJSON' f = let meta = adjustFieldNames f (metaFor a)
+                        in map to . sopRecord meta
+
+export
+genFromJSON : Value v obj => Meta a code => POP FromJSON code =>
+              SumEncoding -> Parser v a
+genFromJSON enc = map to . sop enc (metaFor a)
+
+export
+genFromJSON' :  Value v obj
+             => Meta a code
+             => POP FromJSON code
+             => (adjFieldLabel : String -> String)
+             -> (adjConstructorTag : String -> String)
+             -> SumEncoding
+             -> Parser v a
+genFromJSON' ff fc enc = let meta = adjustInfo ff fc (metaFor a) 
+                          in map to . sop enc meta
+
 --------------------------------------------------------------------------------
 --          Elab Deriving
 --------------------------------------------------------------------------------
-
-fromJSONC1 : Value v obj => NP (FromJSON . f) ks =>
-             ConInfo ks -> Parser v (NP f ks)
-fromJSONC1 info = maybe fromJSON decRecord (argNames info)
-  where decRecord : NP (K String) ks -> Parser v (NP f ks)
-        decRecord names = withObject info.conName \o =>
-                            hctraverse (FromJSON . f) (parseField o) names
-
-fromJSONSOP1 : Value v obj => NP (FromJSON . f) ks =>
-               TypeInfo [ks] -> Parser v (SOP f [ks])
-fromJSONSOP1 (MkTypeInfo _ n (i :: [])) v =
-  map (MkSOP . Z) (fromJSONC1 i v) <?> Key n
-fromJSONSOP1 (MkTypeInfo _ _ (_ :: _ :: _)) impossible
-fromJSONSOP1 (MkTypeInfo _ _ []) impossible
-
-fromJSONC :  Value v obj
-          => NP (FromJSON . f) ks
-          => (typeName : String)
-          -> ConInfo ks
-          -> Parser v (NP f ks)
-fromJSONC tn i@(MkConInfo _ n _) =
-  withObject tn \o => explicitParseField (fromJSONC1 i) o n
-
-fromJSONSOP :  Value v obj
-            => (all : POP_ k (FromJSON . f) kss)
-            => TypeInfo kss
-            -> Parser v (SOP_ k f kss)
-fromJSONSOP {all = MkPOP nps} (MkTypeInfo _ tn cons) =
-  getFirst $ hcliftA2 (NP $ FromJSON . f) parse (injSOP nps) cons
-  where getFirst :  NP_ (List k) (K (Parser v (SOP_ k f kss))) tss -> Parser v (SOP_ k f kss)
-        getFirst []        _ = fail #"Can't parse nullary sum"#
-        getFirst (f :: []) v = f v
-        getFirst (f :: fs) v = f v `orElse` getFirst fs v
-
-        -- TODO: This should go as a utility to idris2-sop
-        injSOP : NP_ (List k) g tss -> NP_ (List k) (InjectionSOP f tss) tss
-        injSOP np = hmap (MkSOP .) $ inj {ks = tss} np
-
-        parse :  NP_ k (FromJSON . f) ts
-              => (NP_ k f ts -> SOP_ k f kss)
-              -> ConInfo_ k ts
-              -> Parser v (SOP_ k f kss)
-        parse f c = map f . fromJSONC tn c
-
-export
-genFromJSON1 : Meta a [ks] => NP FromJSON ks => Value v obj => Parser v a
-genFromJSON1 = map to . fromJSONSOP1 (metaFor a)
-
-export
-genFromJSON : Meta a code => POP FromJSON code => Value v obj => Parser v a
-genFromJSON = map to . fromJSONSOP (metaFor a)
 
 public export
 mkFromJSON : (fromJSON : forall v,obj . Value v obj => Parser v a) -> FromJSON a
@@ -519,13 +636,27 @@ namespace Derive
   export
   FromJSON : DeriveUtil -> InterfaceImpl
   FromJSON g = MkInterfaceImpl "FromJSON" Export []
-                    `(mkFromJSON genFromJSON)
+                    `(mkFromJSON $ genFromJSON defaultTaggedObject)
                     (implementationType `(FromJSON) g)
 
   ||| Derives a `FromJSON` implementation for the given single-constructor
   ||| data type
   export
-  FromJSON1 : DeriveUtil -> InterfaceImpl
-  FromJSON1 g = MkInterfaceImpl "FromJSON" Export []
-                    `(mkFromJSON genFromJSON1)
-                    (implementationType `(FromJSON) g)
+  RecordFromJSON : DeriveUtil -> InterfaceImpl
+  RecordFromJSON g = MkInterfaceImpl "FromJSON" Export []
+                       `(mkFromJSON genRecordFromJSON)
+                       (implementationType `(FromJSON) g)
+
+  ||| Derives a `FromJSON` implementation for the given enum type
+  export
+  EnumFromJSON : DeriveUtil -> InterfaceImpl
+  EnumFromJSON g = MkInterfaceImpl "FromJSON" Export []
+                     `(mkFromJSON \v => genEnumFromJSON v)
+                     (implementationType `(FromJSON) g)
+
+  ||| Derives a `FromJSON` implementation for the given newtype
+  export
+  NewtypeFromJSON : DeriveUtil -> InterfaceImpl
+  NewtypeFromJSON g = MkInterfaceImpl "FromJSON" Export []
+                       `(mkFromJSON genNewtypeFromJSON)
+                       (implementationType `(FromJSON) g)
