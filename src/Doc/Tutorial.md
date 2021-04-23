@@ -22,6 +22,19 @@ import Generics.Derive
 %language ElabReflection
 ```
 
+### Before we begin
+
+This tutorial will make heavy use of the generic
+interfaces from [idris2-sop](https://github.com/stefan-hoeck/idris2-sop).
+If these concepts are new to you, you can read about
+them in several [tutorial blog posts](https://github.com/stefan-hoeck/idris2-sop/blob/main/src/Doc/Index.md).
+Also, if you'd like to learn more about the elaborator scripts
+we use, there are again several
+[tutorials from the elab-util project](https://github.com/stefan-hoeck/idris2-elab-util/blob/main/src/Doc/Index.md).
+
+Now, after this shameless self-advertising, let us begin with
+the JSON stuff.
+
 ### Writing `ToJSON` Encoders
 
 This library comes with encoders for many data types from
@@ -65,7 +78,7 @@ So, that was very easy. For encoding, we use the functions
 from the `JSON.Value.Encoder` interface together with operator
 `.=` (same as in aeson), for encoding key-value pairs.
 Most of the time, this is so straight forward that we can derive
-these instance automatically:
+these instances automatically:
 
 
 ```idris
@@ -87,12 +100,12 @@ gorgar = MkVillain "Gorgar" 2000 Dragon [MkVillain "Igor" 10 Imp []]
 ```
 
 The `RecordToJSON` encoder can be used for data types with only
-on constructor. In this case, the constructor name will not
-be part of the encoding. Likewise, for enum types (all nullary
-constructors), we can opt for encoding just the constructor's name
+one constructor. In this case, the constructor name will not
+be part of the encoded string. Likewise, for enum types (all nullary
+constructors), we can opt for encoding just the constructors' names
 (`EnumToJSON`).
 
-Feel free to load this tutorial in a REPL session, and give
+Feel free to load this tutorial in a REPL session and give
 the encoders a try: `rlwrap idris2 --find-ipkg src/Doc/Tutorial.md`:
 
 ```
@@ -101,14 +114,14 @@ the encoders a try: `rlwrap idris2 --find-ipkg src/Doc/Tutorial.md`:
 
 ### Customizing Encoders
 
-There are quite a few options for customizing, how automatically derived
-encoders should behave. Not all of these are available via elaborator
+There are quite a few options for customizing generic encoders.
+Not all of these are available via elaborator
 reflection, but it is quite easy to write your own elab decriptors
 for your customized versions (see below).
 
 #### Newtypes
 Function `genNewtyeToJSON` encodes a newtype (one constructor, one field)
-by just extracting the stored value and encoding that. Implementations
+by just extracting the wrapped value and encoding that. Implementations
 can also be derived using elab reflection by using `NewtypeToJSON`.
 
 #### Enums
@@ -144,8 +157,8 @@ ToJSON Weekday where
 #### Records
 With `records` we mean single-constructor data types here. If all
 arguments have a name, `genRecordToJSON` will encode these as
-a mapping from field name to encoded value, otherwise, they will
-be encoded like an n-ary sum (resulting in a heterogeneous array).
+a mapping from field name to encoded value, otherwise they will
+be encoded as n-ary sums (resulting in a heterogeneous array).
 If you need to adjust field names prior to encoding them,
 use `genRecordToJSON'` instead.
 As shown for the `Villain` data type, `ToJSON` implementations
@@ -183,11 +196,13 @@ can be encoded. There is a `SumEncoding` data type in `JSON.Option`,
 the doc strings of which explain in detail the different options we
 have. Use `genToJSON` together with one of these options to encode
 an arbitrary sum type. If constructor or field names need to
-be adjusted before encoding them, use `genToEnum'` instead.
+be adjusted before encoding them, use `genToJSON'` instead.
 
 Note: So far, the only option to derive encoders for arbitrary
-sum type through elaborator reflection is `ToJSON`, which
+sum types through elaborator reflection is `ToJSON`, which
 passes the `defaultTaggedField` option to `genToJSON` internally.
+
+Example:
 
 ```idris
 data Weapon : Type where
@@ -201,13 +216,15 @@ ToJSON Weapon where
   toJSON = genToJSON' id toLower TwoElemArray
 ```
 
-#### Writing your own derivable encoders
+#### Writing your own Derivable Encoders
 
-If a certain pattern of customized encoder keeps coming up,
+If a certain pattern of customized encoders keeps coming up,
 it is very easy to write your own autoderivable version
-using `customToJSON`. All you need to do is defining
+using `customToJSON`. All you need to do is define
 your own generic implementation function and pass that
-function's name as a quote to `customToJSON`:
+function's name in a quote to `customToJSON`.
+
+Example:
 
 ```idris
 myToJSON : Encoder v => Meta a code => POP ToJSON code => a -> v
