@@ -25,6 +25,17 @@ record Villain where
   cronies : List Villain
 
 %runElab derive "Villain" [Generic,Meta,Show,Eq,ToJSON1,FromJSON1]
+
+gorgar : Villain
+gorgar = MkVillain "Gorgar" 2000 Dragon [MkVillain "Igor" 10 Imp []]
+```
+
+You can give this a try after installing `idris2-json`:
+
+```
+rpwrap idris2 -p elab-util -p sop -p json -p contrib README.md
+
+Main> :exec putStrLn $ encode gorgar
 ```
 
 More examples can be found in the [tutorial](src/Doc/Tutorial.md).
