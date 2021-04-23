@@ -256,7 +256,7 @@ export
 genEnumToJSON' :  Encoder v => Meta a kss => {auto 0 prf : EnumType kss}
                -> (String -> String) -> a -> v
 genEnumToJSON' f = let meta = adjustConnames f (metaFor a)
-                   in sopEnum meta {prf} . from
+                    in sopEnum meta {prf} . from
 
 ||| Generic version of `sopRecord`.
 export
