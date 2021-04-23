@@ -3,6 +3,10 @@
 Automatically derivable JSON marshallers in the spirit of
 [Haskell's aeson](https://hackage.haskell.org/package/aeson).
 
+Please note, that while tests suggest that the encoders and decoders
+perform reasonably, this library has not been optimized in
+terms of performance.
+
 ### Usage Example
 
 Getting started with encoding and decoding is very easy:
@@ -15,7 +19,7 @@ import Generics.Derive
 
 data MonsterClass = Imp | Goblin | Orc | Dragon
 
-%runElab derive "MonsterClass" [Generic,Meta,Show,Eq,ToJSON,FromJSON]
+%runElab derive "MonsterClass" [Generic,Meta,Show,Eq,EnumToJSON,EnumFromJSON]
 
 record Villain where
   constructor MkVillain
@@ -24,7 +28,7 @@ record Villain where
   class   : MonsterClass
   cronies : List Villain
 
-%runElab derive "Villain" [Generic,Meta,Show,Eq,ToJSON1,FromJSON1]
+%runElab derive "Villain" [Generic,Meta,Show,Eq,RecordToJSON,RecordFromJSON]
 
 gorgar : Villain
 gorgar = MkVillain "Gorgar" 2000 Dragon [MkVillain "Igor" 10 Imp []]
@@ -33,9 +37,10 @@ gorgar = MkVillain "Gorgar" 2000 Dragon [MkVillain "Igor" 10 Imp []]
 You can give this a try after installing `idris2-json`:
 
 ```
-rpwrap idris2 -p elab-util -p sop -p json -p contrib README.md
+rlwrap idris2 -p elab-util -p sop -p json -p contrib README.md
 
 Main> :exec putStrLn $ encode gorgar
+Main> :exec printLn $ (decode {a = Villain} (encode gorgar))
 ```
 
 More examples can be found in the [tutorial](src/Doc/Tutorial.md).
@@ -49,9 +54,9 @@ behave. Me wants this too! Here's what's still missing:
   - [ ] Configure generic encoders and decoders
     - [x] Option for adjusting field names
     - [x] Option for adjusting constructor names
-    - [ ] Option for converting all-nullary sum types
+    - [x] Option for converting all-nullary sum types
           directly to strings (instead of tagged objects)
-    - [x] Option for automatically providing `null` when
+    - [ ] Option for automatically providing `null` when
           decoding a missing object field
     - [x] Do not add constructor tag for single-constructor types
     - [x] Encode newtypes directly (without tags for constructor
