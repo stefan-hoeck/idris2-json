@@ -4,7 +4,7 @@ Automatically derivable JSON marshallers in the spirit of
 [Haskell's aeson](https://hackage.haskell.org/package/aeson).
 
 Please note, that while tests suggest that the encoders and decoders
-perform reasonably, this library has not been optimized in
+perform reasonably well, this library has not been optimized in
 terms of performance.
 
 ### Usage Example
