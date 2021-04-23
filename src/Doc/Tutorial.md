@@ -200,3 +200,26 @@ data Weapon : Type where
 ToJSON Weapon where
   toJSON = genToJSON' id toLower TwoElemArray
 ```
+
+#### Writing your own derivable encoders
+
+If a certain pattern of customized encoder keeps coming up,
+it is very easy to write your own autoderivable version
+using `customToJSON`. All you need to do is defining
+your own generic implementation function and pass that
+function's name as a quote to `customToJSON`:
+
+```idris
+myToJSON : Encoder v => Meta a code => POP ToJSON code => a -> v
+myToJSON = genToJSON' (take 3) toLower (TaggedObject "t" "c")
+
+MyToJSON : DeriveUtil -> InterfaceImpl
+MyToJSON = customToJSON `(myToJSON)
+
+data NPC : Type where
+  Commoner : (name : String) -> (profession : String) -> NPC
+  Noblewoman : (name : String) -> (status : String) -> NPC
+  Demigod : (name : String) -> (attributes : List String) -> NPC
+
+%runElab derive "NPC" [Generic,Meta,Eq,Ord,MyToJSON]
+```

@@ -298,32 +298,29 @@ mkToJSON :  {0 a : Type}
 mkToJSON = %runElab check (var $ singleCon "ToJSON")
 
 namespace Derive
+  export
+  customToJSON : TTImp -> DeriveUtil -> InterfaceImpl
+  customToJSON tti g = MkInterfaceImpl "ToJSON" Export []
+                          `(mkToJSON ~(tti))
+                          (implementationType `(ToJSON) g)
 
   ||| Derives a `ToJSON` implementation for the given data type
   export
   ToJSON : DeriveUtil -> InterfaceImpl
-  ToJSON g = MkInterfaceImpl "ToJSON" Export []
-                    `(mkToJSON $ genToJSON defaultTaggedObject)
-                    (implementationType `(ToJSON) g)
+  ToJSON = customToJSON `(genToJSON defaultTaggedObject)
 
   ||| Derives a `ToJSON` implementation for the given single-constructor
   ||| data type
   export
   RecordToJSON : DeriveUtil -> InterfaceImpl
-  RecordToJSON g = MkInterfaceImpl "ToJSON" Export []
-                      `(mkToJSON genRecordToJSON)
-                      (implementationType `(ToJSON) g)
+  RecordToJSON = customToJSON `(genRecordToJSON)
 
   ||| Derives a `ToJSON` implementation for the given enum type
   export
   EnumToJSON : DeriveUtil -> InterfaceImpl
-  EnumToJSON g = MkInterfaceImpl "ToJSON" Export []
-                   `(mkToJSON genEnumToJSON)
-                   (implementationType `(ToJSON) g)
+  EnumToJSON = customToJSON `(genEnumToJSON)
 
   ||| Derives a `ToJSON` implementation for the given newtype
   export
   NewtypeToJSON : DeriveUtil -> InterfaceImpl
-  NewtypeToJSON g = MkInterfaceImpl "ToJSON" Export []
-                   `(mkToJSON genNewtypeToJSON)
-                   (implementationType `(ToJSON) g)
+  NewtypeToJSON = customToJSON `(genNewtypeToJSON)

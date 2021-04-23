@@ -631,32 +631,29 @@ mkFromJSON : (fromJSON : forall v,obj . Value v obj => Parser v a) -> FromJSON a
 mkFromJSON = %runElab check (var $ singleCon "FromJSON")
 
 namespace Derive
+  export
+  customFromJSON : TTImp -> DeriveUtil -> InterfaceImpl
+  customFromJSON tti g = MkInterfaceImpl "FromJSON" Export []
+                           `(mkFromJSON ~(tti))
+                           (implementationType `(FromJSON) g)
 
   ||| Derives a `FromJSON` implementation for the given data type
   export
   FromJSON : DeriveUtil -> InterfaceImpl
-  FromJSON g = MkInterfaceImpl "FromJSON" Export []
-                    `(mkFromJSON $ genFromJSON defaultTaggedObject)
-                    (implementationType `(FromJSON) g)
+  FromJSON = customFromJSON `(genFromJSON defaultTaggedObject)
 
   ||| Derives a `FromJSON` implementation for the given single-constructor
   ||| data type
   export
   RecordFromJSON : DeriveUtil -> InterfaceImpl
-  RecordFromJSON g = MkInterfaceImpl "FromJSON" Export []
-                       `(mkFromJSON genRecordFromJSON)
-                       (implementationType `(FromJSON) g)
+  RecordFromJSON = customFromJSON `(genRecordFromJSON)
 
   ||| Derives a `FromJSON` implementation for the given enum type
   export
   EnumFromJSON : DeriveUtil -> InterfaceImpl
-  EnumFromJSON g = MkInterfaceImpl "FromJSON" Export []
-                     `(mkFromJSON \v => genEnumFromJSON v)
-                     (implementationType `(FromJSON) g)
+  EnumFromJSON = customFromJSON `(\v => genEnumFromJSON v)
 
   ||| Derives a `FromJSON` implementation for the given newtype
   export
   NewtypeFromJSON : DeriveUtil -> InterfaceImpl
-  NewtypeFromJSON g = MkInterfaceImpl "FromJSON" Export []
-                       `(mkFromJSON genNewtypeFromJSON)
-                       (implementationType `(FromJSON) g)
+  NewtypeFromJSON = customFromJSON `(genNewtypeFromJSON)
