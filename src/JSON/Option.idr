@@ -76,22 +76,10 @@ public export
 adjustFieldNames : (String -> String) -> TypeInfo' k kss -> TypeInfo' k kss
 adjustFieldNames f = adjustInfo f id
 
-||| Witness that a list of list of types (representing the
-||| constructors and fields of an ADT) represents an enum type, i.e.
-||| that all constructors are nullary.
-public export
-data EnumType : (kss : List $ List k) -> Type where
-  EZ : EnumType Nil
-  ES : EnumType kss -> EnumType ([] :: kss)
-
-public export
-0 enumTail : EnumType (ks :: kss) -> EnumType kss
-enumTail (ES x) = x
-
 public export
 nullaryInjections :  NP_ (List k) (ConInfo_ k) kss
                   -> (0 et : EnumType kss)
                   -> NP_ (List k) (K (NS_ (List k) (NP f) kss)) kss
-nullaryInjections []         _  = []
+nullaryInjections []                       _  = []
 nullaryInjections (MkConInfo _ _ [] :: vs) es =
   Z [] :: mapNP (\ns => S ns) (nullaryInjections vs (enumTail es))

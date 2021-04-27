@@ -5,7 +5,7 @@ version    = 0.0.1
 sourcedir  = "src"
 depends    = base        >= 0.3.0
            , contrib     >= 0.3.0
-           , sop         >= 0.2.2
+           , sop         >= 0.3.0
            , elab-util   >= 0.2.0
 
 modules = JSON

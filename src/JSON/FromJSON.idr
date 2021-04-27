@@ -407,21 +407,10 @@ export
 --          SOP Implementations
 --------------------------------------------------------------------------------
 
--- TODO: This should go as a utility to idris2-sop
-size : NP f ks -> Nat
-size []        = 0
-size (_ :: vs) = size vs + 1
-
--- TODO: This should go (in sligthly modified form) as a utility to idris2-sop
-values : Value v obj => Nat -> NP f ks -> Parser (List v) (NP (K v) ks)
-values n [] []              = pure []
-values n [] (_ :: _)        = fail #"expected array of \#{show n} values"#
-values n (_ :: _) []        = fail #"expected array of \#{show n} values"#
-values n (_ :: t) (v :: vs) = (v ::) <$> values n t vs
-
 np : Value v obj => (all : NP (FromJSON . f) ks) => Parser (List v) (NP f ks)
-np vs = do npVS <- values (size all) all vs
-           hctraverse (FromJSON . f) fromJSON npVS
+np vs = case fromListNP all vs of
+          Just npVS => hctraverse (FromJSON . f) fromJSON npVS
+          Nothing   => fail #"expected array of \#{show $ hsize all} values"#
 
 export
 NP (FromJSON . f) ks => FromJSON (NP f ks) where
@@ -431,11 +420,6 @@ export
 (FromJSON a, FromJSON b) => FromJSON (a,b) where
   fromJSON = map (\[x,y] => (x,y)) . fromJSON {a = NP I [a,b] }
 
--- TODO: This should go as a utility to idris2-sop
-inj : NP g ks -> NP (Injection f ks) ks
-inj []       = []
-inj (_ :: t) = Z :: mapNP (S .) (inj t)
-
 firstSuccess :  NP (K (Parser v a)) ts -> Parser v a
 firstSuccess []        _ = fail #"Can't parse nullary sum"#
 firstSuccess (f :: []) o = f o
@@ -443,8 +427,9 @@ firstSuccess (f :: fs) o = f o `orElse` firstSuccess fs o
 
 ns : Value v obj =>
      (all : NP (FromJSON . f) ks) => Parser v (NS f ks)
-ns = withObject "NS" $ firstSuccess 
-                     $ hcliftA2 (FromJSON . f) parse (inj all) (indices all)
+ns = withObject "NS"
+   $ firstSuccess 
+   $ hcliftA2 (FromJSON . f) parse (injectionsNP all) (indices all)
   where parse : FromJSON (f a) =>
                 (f a -> NS f ks) -> Bits32 -> obj -> Result (NS f ks)
         parse f ix o = map f (o .: show ix)
@@ -557,13 +542,13 @@ sop {all = MkPOP nps} enc (MkTypeInfo _ tn cs) =
        TwoElemArray          => impl (asTwoElemArray tn)
        (TaggedObject tf cf)  => impl (tagged tf cf)
 
-  where injSOP : NP_ (List k) g tss -> NP_ (List k) (InjectionSOP f tss) tss
-        injSOP np = hmap (MkSOP .) $ inj {ks = tss} np
+  where injSOP : NP_ (List k) (InjectionSOP f kss) kss
+        injSOP = hmap (MkSOP .) $ injectionsNP nps
 
         impl : (forall ks . NP (FromJSON . f) ks =>
                             ConInfo ks -> Parser v (NP f ks))
              -> Parser v (SOP f kss)
-        impl g = firstSuccess $ hcliftA2 (NP $ FromJSON . f) apply (injSOP nps) cs
+        impl g = firstSuccess $ hcliftA2 (NP $ FromJSON . f) apply injSOP cs
           where apply :  NP_ k (FromJSON . f) ts
                       => (NP_ k f ts -> SOP_ k f kss)
                       -> ConInfo_ k ts
@@ -583,15 +568,15 @@ genNewtypeFromJSON = map to . sopNewtype
 export
 genEnumFromJSON :  Value v obj => Meta a kss => {auto 0 prf : EnumType kss}
                 -> Parser v a
-genEnumFromJSON = map to . sopEnum (metaFor a)
+-- genEnumFromJSON = map to . sopEnum (metaFor a)
 
 ||| Like `genEnumFromJSON`, but uses the given function to adjust
 ||| constructor names before being used as tags.
 export
-genEnumFromJSON' :  Value v obj => Meta a kss => {auto 0 prf : EnumType kss}
-                 -> (String -> String) -> Parser v a
-genEnumFromJSON' f = let meta = adjustConnames f (metaFor a)
-                      in map to . sopEnum meta {prf}
+genEnumFromJSON' :  Value v obj => Generic a kss => {auto 0 prf : EnumType kss}
+                 -> (a -> String) -> Parser v a
+-- genEnumFromJSON' f = let meta = adjustConnames f (metaFor a)
+--                       in map to . sopEnum meta {prf}
 
 ||| Generic version of `sopRecord`.
 export

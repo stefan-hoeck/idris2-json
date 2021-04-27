@@ -117,15 +117,9 @@ export
 (ToJSON a, ToJSON b) => ToJSON (a,b) where
   toJSON (a,b) = toJSON $ the (NP I _) [a,b]
 
--- TODO: This should go as a utility or interface to idris2-sop
-export
-unfoldNP : NP f ks -> (a -> a) -> a -> NP (K a) ks
-unfoldNP []     _ _ = []
-unfoldNP (_::t) f x = x :: unfoldNP t f (f x)
-
 export
 indices : NP f ks ->  NP (K Bits32) ks
-indices np = unfoldNP np (+1) (the Bits32 0)
+indices np = iterateNP np (+1) (the Bits32 0)
 
 ns : Encoder v => (all : NP (ToJSON . f) ks) => NS f ks -> v
 ns = collapseNS . hcliftA2 (ToJSON . f) enc (indices all)
