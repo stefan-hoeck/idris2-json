@@ -568,15 +568,15 @@ genNewtypeFromJSON = map to . sopNewtype
 export
 genEnumFromJSON :  Value v obj => Meta a kss => {auto 0 prf : EnumType kss}
                 -> Parser v a
--- genEnumFromJSON = map to . sopEnum (metaFor a)
+genEnumFromJSON = map to . sopEnum (metaFor a)
 
 ||| Like `genEnumFromJSON`, but uses the given function to adjust
 ||| constructor names before being used as tags.
 export
-genEnumFromJSON' :  Value v obj => Generic a kss => {auto 0 prf : EnumType kss}
-                 -> (a -> String) -> Parser v a
--- genEnumFromJSON' f = let meta = adjustConnames f (metaFor a)
---                       in map to . sopEnum meta {prf}
+genEnumFromJSON' :  Value v obj => Meta a kss => {auto 0 prf : EnumType kss}
+                 -> (String -> String) -> Parser v a
+genEnumFromJSON' f = let meta = adjustConnames f (metaFor a)
+                      in map to . sopEnum meta {prf}
 
 ||| Generic version of `sopRecord`.
 export
