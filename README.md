@@ -87,4 +87,4 @@ In addition, the test suit requires the following:
 
 Note, that Idris2 had a bug in `Language.JSON` when encoding and decoding
 unicode characters. This was fixed in commit 181b26b25008359e4746adc5ff583836a9fa287e.
-The actual commit has been built against Idris 2, version 0.3.0-daf30ee4f.
+The actual commit has been built against Idris 2, version 0.3.0-50d75cc3a.

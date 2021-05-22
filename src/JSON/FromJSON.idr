@@ -98,6 +98,7 @@ formatError path msg = "Error in " ++ formatPath path ++ ": " ++ msg
 
 public export
 interface FromJSON a  where
+  constructor MkFromJSON
   fromJSON : forall v,obj . Value v obj => Parser v a
 
 export %inline
@@ -611,15 +612,11 @@ genFromJSON' ff fc enc = let meta = adjustInfo ff fc (metaFor a)
 --          Elab Deriving
 --------------------------------------------------------------------------------
 
-public export
-mkFromJSON : (fromJSON : forall v,obj . Value v obj => Parser v a) -> FromJSON a
-mkFromJSON = %runElab check (var $ singleCon "FromJSON")
-
 namespace Derive
   export
   customFromJSON : TTImp -> DeriveUtil -> InterfaceImpl
   customFromJSON tti g = MkInterfaceImpl "FromJSON" Export []
-                           `(mkFromJSON ~(tti))
+                           `(MkFromJSON ~(tti))
                            (implementationType `(FromJSON) g)
 
   ||| Derives a `FromJSON` implementation for the given data type

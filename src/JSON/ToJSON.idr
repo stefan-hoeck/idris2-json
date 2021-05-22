@@ -19,6 +19,7 @@ import Generics.Derive
 
 public export
 interface ToJSON a where
+  constructor MkToJSON
   toJSON : forall v . Encoder v => a -> v
 
 infixr 8 .=
@@ -286,16 +287,11 @@ genToJSON' ff fc enc = let meta = adjustInfo ff fc (metaFor a)
 --          Elab Deriving
 --------------------------------------------------------------------------------
 
-public export
-mkToJSON :  {0 a : Type}
-         -> (toJSON : forall v . Encoder v => a -> v) -> ToJSON a
-mkToJSON = %runElab check (var $ singleCon "ToJSON")
-
 namespace Derive
   export
   customToJSON : TTImp -> DeriveUtil -> InterfaceImpl
   customToJSON tti g = MkInterfaceImpl "ToJSON" Export []
-                          `(mkToJSON ~(tti))
+                          `(MkToJSON ~(tti))
                           (implementationType `(ToJSON) g)
 
   ||| Derives a `ToJSON` implementation for the given data type
