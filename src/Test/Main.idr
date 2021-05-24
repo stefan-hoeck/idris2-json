@@ -1,5 +1,6 @@
 module Test.Main
 
+import Experimental.Prelude
 import Language.JSON
 import JSON
 import Hedgehog
