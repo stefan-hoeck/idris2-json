@@ -8,6 +8,7 @@
 ||| library
 module JSON.ToJSON
 
+import Experimental.Prelude
 import Data.List1
 import Data.Vect
 import JSON.Option
@@ -64,6 +65,18 @@ ToJSON Bits32 where toJSON = smallInteger . cast
 
 export
 ToJSON Bits64 where toJSON = largeInteger . cast
+
+export
+ToJSON Int8 where toJSON = smallInteger . cast
+
+export
+ToJSON Int16 where toJSON = smallInteger . cast
+
+export
+ToJSON Int32 where toJSON = smallInteger . cast
+
+export
+ToJSON Int64 where toJSON = largeInteger . cast
 
 export
 ToJSON Int where toJSON = largeInteger . cast

@@ -8,6 +8,7 @@
 ||| library
 module JSON.FromJSON
 
+import Experimental.Prelude
 import JSON.ToJSON
 import JSON.Option
 import JSON.Value
@@ -356,6 +357,22 @@ FromJSON Bits64 where
 export
 FromJSON Int where
   fromJSON = boundedLargeIntegral "Int" (-0x8000000000000000) 0x7fffffffffffffff
+
+export
+FromJSON Int8 where
+  fromJSON = boundedLargeIntegral "Int8" (-0x80) 0x7f
+
+export
+FromJSON Int16 where
+  fromJSON = boundedLargeIntegral "Int16" (-0x8000) 0x7fff
+
+export
+FromJSON Int32 where
+  fromJSON = boundedLargeIntegral "Int32" (-0x80000000) 0x7fffffff
+
+export
+FromJSON Int64 where
+  fromJSON = boundedLargeIntegral "Int64" (-0x8000000000000000) 0x7fffffffffffffff
 
 export
 FromJSON Nat where
