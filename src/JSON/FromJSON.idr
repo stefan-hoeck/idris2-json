@@ -461,7 +461,7 @@ NP (FromJSON . f) ks => FromJSON (NS f ks) where
 ||| the decoded value in `MkSOP . Z`.
 export
 sopNewtype : Value v obj => FromJSON (f k) => Parser v (SOP f [[k]])
-sopNewtype = map (MkSOP . Z) . fromJSON
+sopNewtype = map (\x => MkSOP $ Z [x]) . fromJSON
 
 consAsEnum :  Value v obj
            => String
@@ -501,7 +501,7 @@ untagged info = maybe fromJSON (conFields info.conName) (argNames info)
 export
 sopRecord : Value v obj => NP (FromJSON . f) ks =>
             TypeInfo [ks] -> Parser v (SOP f [ks])
-sopRecord (MkTypeInfo _ n [i]) v = map (MkSOP . Z) (untagged i v) <?> Key n
+sopRecord (MkTypeInfo _ n [i]) v = map (MkSOP . Z) (untagged i v)
 
 -- Decodes an applied constructor as a tagged object, if it is record-like,
 -- that is, all fields do have a field name. Otherwise, it is
