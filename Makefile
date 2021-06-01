@@ -8,14 +8,14 @@ doc_pkg  = doc.ipkg
 
 .PHONY: all lib install clean clean-install
 
-all: lib doc test
+all: lib docs test
 
 clean-install: clean install
 
 lib:
 	${IDRIS2} --build ${lib_pkg}
 
-doc:
+docs:
 	${IDRIS2} --build ${doc_pkg}
 
 test:
