@@ -299,7 +299,7 @@ prop_weekday : Property
 prop_weekday = roundTrip weekday
 
 main : IO ()
-main = ignore . checkGroup . withTests 10000 $ MkGroup "JSON" [
+main = test . pure $ MkGroup "JSON" [
             ("prop_bits8", prop_bits8)
           , ("prop_bits16", prop_bits16)
           , ("prop_bits32", prop_bits32)
