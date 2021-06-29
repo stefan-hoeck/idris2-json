@@ -8,7 +8,6 @@
 ||| library
 module JSON.ToJSON
 
-import Experimental.Prelude
 import Data.List1
 import Data.Vect
 import JSON.Option

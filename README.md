@@ -76,7 +76,6 @@ Besides `base` and `contrib`, the following dependencies are needed to
 support the automatic deriving of interface implementations:
 
   * [elab-util](https://github.com/stefan-hoeck/idris2-elab-util)
-  * [experimental](https://github.com/stefan-hoeck/idris2-experimental)
   * [sop](https://github.com/stefan-hoeck/idris2-sop)
 
 In addition, the test suit requires the following:
@@ -87,4 +86,4 @@ In addition, the test suit requires the following:
 ### Idris2 Version
 
 The latest release requires Idris2, version 0.4.0.
-The actual commit has been built against Idris 2, version 0.4.0-ea1ad1688.
+The actual commit has been built against Idris 2, version 0.4.0-6f9b926b1.

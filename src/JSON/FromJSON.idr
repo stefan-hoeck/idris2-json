@@ -8,7 +8,6 @@
 ||| library
 module JSON.FromJSON
 
-import Experimental.Prelude
 import JSON.ToJSON
 import JSON.Option
 import JSON.Value
