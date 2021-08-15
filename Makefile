@@ -6,7 +6,7 @@ test_pkg = test.ipkg
 
 doc_pkg  = doc.ipkg
 
-.PHONY: all lib install clean clean-install
+.PHONY: all lib install clean clean-install develop
 
 all: lib docs test
 
@@ -33,3 +33,6 @@ clean:
 # Start a REPL in rlwrap
 repl:
 	rlwrap -pGreen ${IDRIS2} --find-ipkg src/JSON.idr
+
+develop:
+	find -name "*.idr" | entr -d idris2 --typecheck ${lib_pkg}
