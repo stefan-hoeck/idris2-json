@@ -193,7 +193,7 @@ withNumber = withValue "Number" getNumber
 export
 withInteger : Value v obj => Lazy String -> Parser Integer a -> Parser v a
 withInteger s f =
-  withNumber s \d =>
+  withNumber s $ \d =>
     let n = the Integer (cast d)
     in if d == fromInteger n
           then f n
@@ -216,7 +216,7 @@ boundedIntegral :  Num a
                 -> (upper : Integer)
                 -> Parser v a
 boundedIntegral s lo up =
-  withInteger s \n => if n >= lo && n <= up
+  withInteger s $ \n => if n >= lo && n <= up
                          then pure $ fromInteger n
                          else fail #"integer out of bounds: \#{show n}"#
 
@@ -228,7 +228,7 @@ boundedLargeIntegral :  Num a
                      -> (upper : Integer)
                      -> Parser v a
 boundedLargeIntegral s lo up =
-  withLargeInteger s \n => if n >= lo && n <= up
+  withLargeInteger s $ \n => if n >= lo && n <= up
                               then pure $ fromInteger n
                               else fail #"integer out of bounds: \#{show n}"#
 
@@ -325,7 +325,7 @@ FromJSON Void where
 
 export
 FromJSON () where
-  fromJSON = withArray "()"
+  fromJSON = withArray "()" $
     \case Nil    => pure ()
           _ :: _ => fail "parsing () failed, expected empty list"
 
@@ -375,7 +375,7 @@ FromJSON Int64 where
 
 export
 FromJSON Nat where
-  fromJSON = withLargeInteger "Nat" \n =>
+  fromJSON = withLargeInteger "Nat" $ \n =>
     if n >= 0 then pure $ fromInteger n
     else fail #"not a natural number: \#{show n}"#
 
@@ -389,7 +389,7 @@ FromJSON String where
 
 export
 FromJSON Char where
-  fromJSON = withString "Char"
+  fromJSON = withString "Char" $
     \str => case strM str of
                  (StrCons c "") => pure c
                  _ => fail "expected a string of length 1"
@@ -404,20 +404,20 @@ FromJSON a => FromJSON (List a) where
 
 export
 FromJSON a => FromJSON (List1 a) where
-  fromJSON = withArray "List1"
+  fromJSON = withArray "List1" $
     \case Nil    => fail #"expected non-empty list"#
           h :: t => traverse fromJSON (h ::: t)
 
 export
 {n : Nat} -> FromJSON a => FromJSON (Vect n a) where
-  fromJSON = withArray #"Vect \#{show n}"#
+  fromJSON = withArray #"Vect \#{show n}"# $
     \vs => case toVect n vs of
                 Just vect => traverse fromJSON vect
                 Nothing   => fail #"expected list of length \#{show n}"#
 
 export
 (FromJSON a, FromJSON b) => FromJSON (Either a b) where
-  fromJSON = withObject "Either" \o =>
+  fromJSON = withObject "Either" $ \o =>
                map Left (o .: "Left") `orElse` map Right (o .: "Right")
 
 --------------------------------------------------------------------------------
@@ -468,7 +468,7 @@ consAsEnum :  Value v obj
            -> (0 prf : EnumType kss)
            -> Parser v (NS_ (List k) (NP_ k f) kss)
 consAsEnum tn np prf =
-  withString tn \s => firstSuccess (hliftA2 run np (nullaryInjections np prf)) s
+  withString tn $ \s => firstSuccess (hliftA2 run np (nullaryInjections np prf)) s
   where run :  ConInfo_ k ks
             -> NS_ (List k) (NP f) kss
             -> Parser String (NS_ (List k) (NP f) kss)
@@ -488,7 +488,7 @@ sopEnum (MkTypeInfo _ tn cs) v = MkSOP <$> consAsEnum tn cs prf v
 -- Decodes an applied, record-like constructor as list of key-value pairs.
 conFields : Value v obj => NP (FromJSON . f) ks =>
             String -> NP (K String) ks -> Parser v (NP f ks)
-conFields cn names = withObject cn \o =>
+conFields cn names = withObject cn $ \o =>
                        hctraverse (FromJSON . f) (parseField o) names
 
 untagged : Value v obj => NP (FromJSON . f) ks =>
@@ -525,19 +525,19 @@ tagged tf cf ci v =
 asObject : Value v obj => NP (FromJSON . f) ks =>
            (typeName : String) -> ConInfo ks -> Parser v (NP f ks)
 asObject tn i@(MkConInfo _ n _) =
-  withObject tn \o => explicitParseField (untagged i) o n
+  withObject tn $ \o => explicitParseField (untagged i) o n
 
 -- Decodes a single constructor as a two element array: The first element
 -- being the constructor's name, the second its encoded values.
 asTwoElemArray : Value v obj => NP (FromJSON . f) ks =>
                  (typeName : String) -> ConInfo ks -> Parser v (NP f ks)
 asTwoElemArray tn i@(MkConInfo _ cn _) =
-  withArray tn \vs => case vs of
-                           [n,c] => do n2 <- fromJSON n
-                                       if n2 == cn
-                                          then untagged i c
-                                          else fail #"expected \#{cn} but got \#{n2}"#
-                           _     => fail #"expected 2-element array"#
+  withArray tn $ \vs => case vs of
+                             [n,c] => do n2 <- fromJSON n
+                                         if n2 == cn
+                                            then untagged i c
+                                            else fail #"expected \#{cn} but got \#{n2}"#
+                             _     => fail #"expected 2-element array"#
 
 ||| Decodes a sum of products as specified by the passed
 ||| `SumEncoding` (see its documentation for details) using
