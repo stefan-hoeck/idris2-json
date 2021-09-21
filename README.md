@@ -85,5 +85,8 @@ In addition, the test suit requires the following:
 
 ### Idris2 Version
 
-The latest release requires Idris2, version 0.4.0.
-The actual commit has been built against Idris 2, version 0.4.0-dd7d77d41.
+Starting from Idris2 version 0.5.1, tagged releases of the same
+minor version number (e.g. 0.5.x) will be made available, while the main
+branch keeps following the Idris2 main branch.
+
+The latest commit has been built against Idris 2, version 0.5.1-bf0a15725.
