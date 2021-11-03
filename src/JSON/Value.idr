@@ -133,21 +133,21 @@ Value JSON (List (String,JSON)) where
   typeOf (JString _)  = "String"
   typeOf (JArray _)   = "Array"
   typeOf (JObject _)  = "Object"
-  
+
   getObject (JObject ps) = Just ps
   getObject _            = Nothing
-  
+
   getNumber (JNumber v) = Just v
   getNumber _           = Nothing
-  
+
   getBoolean (JBoolean v) = Just v
   getBoolean _            = Nothing
-  
+
   getArray (JArray v) = Just v
   getArray _          = Nothing
-  
+
   getString (JString v) = Just v
   getString _           = Nothing
-  
+
   isNull JNull = True
   isNull _     = False

@@ -266,7 +266,7 @@ explicitParseFieldMaybe' p o key =
 ||| Retrieve the value associated with the given key of an `IObject`.
 ||| The result is `empty` if the key is not present or the value cannot
 ||| be converted to the desired type.
-||| 
+|||
 ||| This accessor is appropriate if the key and value /must/ be present
 ||| in an object for it to be valid.  If the key and value are
 ||| optional, use `.:?` instead.
@@ -277,7 +277,7 @@ export
 ||| Retrieve the value associated with the given key of an `IObject`. The
 ||| result is `Nothing` if the key is not present or if its value is `Null`,
 ||| or `empty` if the value cannot be converted to the desired type.
-||| 
+|||
 ||| This accessor is most useful if the key and value can be absent
 ||| from an object without affecting its validity.  If the key and
 ||| value are mandatory, use `.:` instead.
@@ -289,7 +289,7 @@ export
 ||| Retrieve the value associated with the given key of an `IObject`
 ||| The result is `Nothing` if the key is not present or 'empty' if the
 ||| value cannot be converted to the desired type.
-||| 
+|||
 ||| This differs from `.:?` by attempting to parse `Null` the same as any
 ||| other JSON value, instead of interpreting it as `Nothing`.
 export
@@ -445,7 +445,7 @@ firstSuccess (f :: fs) o = f o `orElse` firstSuccess fs o
 ns : Value v obj =>
      (all : NP (FromJSON . f) ks) => Parser v (NS f ks)
 ns = withObject "NS"
-   $ firstSuccess 
+   $ firstSuccess
    $ hcliftA2 (FromJSON . f) parse (injectionsNP all) (indices all)
   where parse : FromJSON (f a) =>
                 (f a -> NS f ks) -> Bits32 -> obj -> Result (NS f ks)
@@ -621,7 +621,7 @@ genFromJSON' :  Value v obj
              -> (adjConstructorTag : String -> String)
              -> SumEncoding
              -> Parser v a
-genFromJSON' ff fc enc = let meta = adjustInfo ff fc (metaFor a) 
+genFromJSON' ff fc enc = let meta = adjustInfo ff fc (metaFor a)
                           in map to . sop enc meta
 
 --------------------------------------------------------------------------------

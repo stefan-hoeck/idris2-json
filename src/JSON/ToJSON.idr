@@ -292,7 +292,7 @@ genToJSON' :  Encoder v
            -> SumEncoding
            -> a
            -> v
-genToJSON' ff fc enc = let meta = adjustInfo ff fc (metaFor a) 
+genToJSON' ff fc enc = let meta = adjustInfo ff fc (metaFor a)
                         in sop enc meta . from
 
 --------------------------------------------------------------------------------

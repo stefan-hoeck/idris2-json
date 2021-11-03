@@ -16,7 +16,7 @@ import Generics.Derive
 -- for large Nats
 [FastNatEq] Eq Nat where
   (==) = (==) `on` natToInteger
-  
+
 -- The default Ord for Nat runs in O(n), which leads to stack overflows
 -- for large Nats
 [FastNatOrd] Ord Nat using FastNatEq where
