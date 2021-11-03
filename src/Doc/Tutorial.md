@@ -1,4 +1,4 @@
-## Idris2-json: Tutorial
+# Idris2-json: Tutorial
 
 This library offers functionality for writing marshallers
 from and to JSON in Idris2. While it is kept in the spirit
@@ -22,7 +22,7 @@ import Generics.Derive
 %language ElabReflection
 ```
 
-### Before we begin
+## Before we begin
 
 This tutorial will make heavy use of the generic
 interfaces from [idris2-sop](https://github.com/stefan-hoeck/idris2-sop).
@@ -35,7 +35,7 @@ we use, there are again several
 Now, after this shameless self-advertising, let us begin with
 the JSON stuff.
 
-### Writing `ToJSON` Encoders
+## Writing `ToJSON` Encoders
 
 This library comes with encoders for many data types from
 the core libraries already implemented. As an example, we
@@ -108,23 +108,23 @@ constructors), we can opt for encoding just the constructors' names
 Feel free to load this tutorial in a REPL session and give
 the encoders a try: `rlwrap idris2 --find-ipkg src/Doc/Tutorial.md`:
 
-```
+```repl
 :exec putStrLn $ encode gorgar
 ```
 
-### Customizing Encoders
+## Customizing Encoders
 
 There are quite a few options for customizing generic encoders.
 Not all of these are available via elaborator
 reflection, but it is quite easy to write your own elab decriptors
 for your customized versions (see below).
 
-#### Newtypes
+### Newtypes
 Function `genNewtyeToJSON` encodes a newtype (one constructor, one field)
 by just extracting the wrapped value and encoding that. Implementations
 can also be derived using elab reflection by using `NewtypeToJSON`.
 
-#### Enums
+### Enums
 For enumerations (all nullary constructors), there are functions
 `genEnumToJSON` and `genEnumToJSON'`, the latter taking an additional
 function argument for adjusting constructor names before encoding
@@ -154,7 +154,7 @@ ToJSON Weekday where
   toJSON = genEnumToJSON' (take 3 . toLower)
 ```
 
-#### Records
+### Records
 With `records` we mean single-constructor data types here. If all
 arguments have a name, `genRecordToJSON` will encode these as
 a mapping from field name to encoded value, otherwise they will
@@ -190,7 +190,7 @@ ToJSON Spell where
   toJSON = genRecordToJSON' reverse
 ```
 
-#### Arbitrary Sums
+### Arbitrary Sums
 Sum types offer the greatest flexibility about how they
 can be encoded. There is a `SumEncoding` data type in `JSON.Option`,
 the doc strings of which explain in detail the different options we
@@ -216,7 +216,7 @@ ToJSON Weapon where
   toJSON = genToJSON' id toLower TwoElemArray
 ```
 
-#### Writing your own Derivable Encoders
+### Writing your own Derivable Encoders
 
 If a certain pattern of customized encoders keeps coming up,
 it is very easy to write your own autoderivable version
