@@ -75,13 +75,13 @@ behave. Me wants this too! Here's what's still missing:
 Besides `base` and `contrib`, the following dependencies are needed to
 support the automatic deriving of interface implementations:
 
-  * [elab-util](https://github.com/stefan-hoeck/idris2-elab-util)
-  * [sop](https://github.com/stefan-hoeck/idris2-sop)
+* [elab-util](https://github.com/stefan-hoeck/idris2-elab-util)
+* [sop](https://github.com/stefan-hoeck/idris2-sop)
 
 In addition, the test suit requires the following:
 
-  * [pretty-show](https://github.com/stefan-hoeck/idris2-pretty-show)
-  * [hedgehog](https://github.com/stefan-hoeck/idris2-hedgehog)
+* [pretty-show](https://github.com/stefan-hoeck/idris2-pretty-show)
+* [hedgehog](https://github.com/stefan-hoeck/idris2-hedgehog)
 
 ### Idris2 Version
 
