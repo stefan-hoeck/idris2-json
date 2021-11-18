@@ -7,7 +7,7 @@ Please note, that while tests suggest that the encoders and decoders
 perform reasonably well, this library has not been optimized in
 terms of performance.
 
-### Usage Example
+## Usage Example
 
 Getting started with encoding and decoding is very easy:
 
@@ -36,7 +36,7 @@ gorgar = MkVillain "Gorgar" 2000 Dragon [MkVillain "Igor" 10 Imp []]
 
 You can give this a try after installing `idris2-json`:
 
-```
+```shell
 rlwrap idris2 -p elab-util -p sop -p json -p contrib README.md
 
 Main> :exec putStrLn $ encode gorgar
@@ -45,48 +45,49 @@ Main> :exec printLn $ (decode {a = Villain} (encode gorgar))
 
 More examples can be found in the [tutorial](src/Doc/Tutorial.md).
 
-### Missing Stuff
+## Missing Stuff
 
 In aeson it is possible to adjust via an `Option` data type,
 how generically derived implementations of `ToJSON` and `FromJSON`
 behave. Me wants this too! Here's what's still missing:
 
-  - [ ] Configure generic encoders and decoders
-    - [x] Option for adjusting field names
-    - [x] Option for adjusting constructor names
-    - [x] Option for converting all-nullary sum types
-          directly to strings (instead of tagged objects)
-    - [ ] Option for automatically providing `null` when
-          decoding a missing object field
-    - [x] Do not add constructor tag for single-constructor types
-    - [x] Encode newtypes directly (without tags for constructor
-          or field names.
-    - [x] Options, how sum types should be encoded
-      - [x] As a tagged object, with a field for the constructor to
-            be used and a field for the actual values
-      - [x] As an untagged value (constructors will be tried in
-            order when decoding until the first succeeds)
-      - [x] As an object with a single field named after the
-            constructor
-      - [x] As a two element array
+- [ ] Configure generic encoders and decoders
+  - [x] Option for adjusting field names
+  - [x] Option for adjusting constructor names
+  - [x] Option for converting all-nullary sum types
+        directly to strings (instead of tagged objects)
+  - [ ] Option for automatically providing `null` when
+        decoding a missing object field
+  - [x] Do not add constructor tag for single-constructor types
+  - [x] Encode newtypes directly (without tags for constructor
+        or field names.
+  - [x] Options, how sum types should be encoded
+    - [x] As a tagged object, with a field for the constructor to
+          be used and a field for the actual values
+    - [x] As an untagged value (constructors will be tried in
+          order when decoding until the first succeeds)
+    - [x] As an object with a single field named after the
+          constructor
+    - [x] As a two element array
 
-### Dependencies
+## Dependencies
 
 Besides `base` and `contrib`, the following dependencies are needed to
 support the automatic deriving of interface implementations:
 
-  * [elab-util](https://github.com/stefan-hoeck/idris2-elab-util)
-  * [sop](https://github.com/stefan-hoeck/idris2-sop)
+* [elab-util](https://github.com/stefan-hoeck/idris2-elab-util)
+* [sop](https://github.com/stefan-hoeck/idris2-sop)
 
 In addition, the test suit requires the following:
 
-  * [pretty-show](https://github.com/stefan-hoeck/idris2-pretty-show)
-  * [hedgehog](https://github.com/stefan-hoeck/idris2-hedgehog)
+* [pretty-show](https://github.com/stefan-hoeck/idris2-pretty-show)
+* [hedgehog](https://github.com/stefan-hoeck/idris2-hedgehog)
 
-### Idris2 Version
+## Idris2 Version
 
 Starting from Idris2 version 0.5.1, tagged releases of the same
 minor version number (e.g. 0.5.x) will be made available, while the main
 branch keeps following the Idris2 main branch.
 
-The latest commit has been built against Idris 2, version 0.5.1-bf0a15725.
+The latest commit has been built against Idris 2 of version set in the ``.idris-version`` file.
+This file contains a version in the format which ``git describe --tags`` gives.
