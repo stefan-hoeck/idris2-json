@@ -7,7 +7,7 @@ Please note, that while tests suggest that the encoders and decoders
 perform reasonably well, this library has not been optimized in
 terms of performance.
 
-### Usage Example
+## Usage Example
 
 Getting started with encoding and decoding is very easy:
 
@@ -45,7 +45,7 @@ Main> :exec printLn $ (decode {a = Villain} (encode gorgar))
 
 More examples can be found in the [tutorial](src/Doc/Tutorial.md).
 
-### Missing Stuff
+## Missing Stuff
 
 In aeson it is possible to adjust via an `Option` data type,
 how generically derived implementations of `ToJSON` and `FromJSON`
@@ -70,7 +70,7 @@ behave. Me wants this too! Here's what's still missing:
           constructor
     - [x] As a two element array
 
-### Dependencies
+## Dependencies
 
 Besides `base` and `contrib`, the following dependencies are needed to
 support the automatic deriving of interface implementations:
@@ -83,7 +83,7 @@ In addition, the test suit requires the following:
 * [pretty-show](https://github.com/stefan-hoeck/idris2-pretty-show)
 * [hedgehog](https://github.com/stefan-hoeck/idris2-hedgehog)
 
-### Idris2 Version
+## Idris2 Version
 
 Starting from Idris2 version 0.5.1, tagged releases of the same
 minor version number (e.g. 0.5.x) will be made available, while the main
