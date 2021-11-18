@@ -36,7 +36,7 @@ gorgar = MkVillain "Gorgar" 2000 Dragon [MkVillain "Igor" 10 Imp []]
 
 You can give this a try after installing `idris2-json`:
 
-```
+```shell
 rlwrap idris2 -p elab-util -p sop -p json -p contrib README.md
 
 Main> :exec putStrLn $ encode gorgar
@@ -51,24 +51,24 @@ In aeson it is possible to adjust via an `Option` data type,
 how generically derived implementations of `ToJSON` and `FromJSON`
 behave. Me wants this too! Here's what's still missing:
 
-  - [ ] Configure generic encoders and decoders
-    - [x] Option for adjusting field names
-    - [x] Option for adjusting constructor names
-    - [x] Option for converting all-nullary sum types
-          directly to strings (instead of tagged objects)
-    - [ ] Option for automatically providing `null` when
-          decoding a missing object field
-    - [x] Do not add constructor tag for single-constructor types
-    - [x] Encode newtypes directly (without tags for constructor
-          or field names.
-    - [x] Options, how sum types should be encoded
-      - [x] As a tagged object, with a field for the constructor to
-            be used and a field for the actual values
-      - [x] As an untagged value (constructors will be tried in
-            order when decoding until the first succeeds)
-      - [x] As an object with a single field named after the
-            constructor
-      - [x] As a two element array
+- [ ] Configure generic encoders and decoders
+  - [x] Option for adjusting field names
+  - [x] Option for adjusting constructor names
+  - [x] Option for converting all-nullary sum types
+        directly to strings (instead of tagged objects)
+  - [ ] Option for automatically providing `null` when
+        decoding a missing object field
+  - [x] Do not add constructor tag for single-constructor types
+  - [x] Encode newtypes directly (without tags for constructor
+        or field names.
+  - [x] Options, how sum types should be encoded
+    - [x] As a tagged object, with a field for the constructor to
+          be used and a field for the actual values
+    - [x] As an untagged value (constructors will be tried in
+          order when decoding until the first succeeds)
+    - [x] As an object with a single field named after the
+          constructor
+    - [x] As a two element array
 
 ### Dependencies
 
