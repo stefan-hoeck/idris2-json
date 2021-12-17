@@ -55,7 +55,7 @@ defaultTaggedObject = TaggedObject "tag" "contents"
 
 public export
 adjustConnames : (String -> String) -> TypeInfo' k kss -> TypeInfo' k kss
-adjustConnames f = record { constructors $= mapNP adjCon }
+adjustConnames f = { constructors $= mapNP adjCon }
   where adjCon : ConInfo_ k ks -> ConInfo_ k ks
         adjCon (MkConInfo ns n fs) = MkConInfo ns (f n) fs
 
@@ -64,7 +64,7 @@ adjustInfo :  (adjFields : String -> String)
            -> (adjCons : String -> String)
            -> TypeInfo' k kss
            -> TypeInfo' k kss
-adjustInfo af ac = record { constructors $= mapNP adjCon }
+adjustInfo af ac = { constructors $= mapNP adjCon }
   where adjArg : ArgName -> ArgName
         adjArg (NamedArg ix n) = NamedArg ix $ af n
         adjArg arg = arg
