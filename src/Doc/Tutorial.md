@@ -7,8 +7,8 @@ there is one key difference: We abstract over the `Value`
 representation, allowing greater flexibility in how data
 is encoded and decoded. While we will use the `JSON` type
 from `Language.JSON` in this tutorial, users on one of the
-Javascript backends might opt for going via some (immutable)
-wrapper around Javascript `object`s, thus having access
+JavaScript backends might opt for going via some (immutable)
+wrapper around JavaScript `object`s, thus having access
 to the highly optimized parser and stringifier of the backend
 (this is what [idris2-dom](https://github.com/stefan-hoeck/idris2-dom)
 does). This tutorial is a literate Idris2 file, hence:
@@ -138,7 +138,6 @@ Examples:
 
 take : Nat -> String -> String
 take n = pack . take n . unpack
-
 data Gender = Female | Male | NonBinary
 
 %runElab derive "Gender" [Generic,Meta,Eq,Ord]
