@@ -18,6 +18,7 @@ module Doc.Tutorial
 
 import JSON
 import Generics.Derive
+import Data.String
 
 %language ElabReflection
 ```
@@ -134,6 +135,10 @@ them. `genEnumToJSON` can also be derived automatically via
 Examples:
 
 ```idris
+
+take : Nat -> String -> String
+take n = pack . take n . unpack
+
 data Gender = Female | Male | NonBinary
 
 %runElab derive "Gender" [Generic,Meta,Eq,Ord]
