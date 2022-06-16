@@ -32,6 +32,8 @@ jobs:
         uses: actions/checkout@v2
       - name: Test pack
         run: pack info
+      - name: Test pack2
+        run: which pack
           #      - name: Build lib
           #        run: pack install json
           #      - name: Build docs
