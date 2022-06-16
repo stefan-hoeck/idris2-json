@@ -32,18 +32,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Test pack
-        run: |
-          pack info
-          which pack
-          ls /root/.pack
-          ls /root/.pack/db
-          ls /root/.pack/install
-          cat /root/.pack/user/pack.toml
-
-          #      - name: Build lib
-          #        run: pack install json
-          #      - name: Build docs
-          #        run: pack install json-docs
-          #      - name: Run test
-          #        run: pack exec json-test -n 1000
+      - name: Build lib
+        run: pack install json
+      - name: Build docs
+        run: pack install json-docs
+      - name: Run test
+        run: pack exec json-test -n 1000
