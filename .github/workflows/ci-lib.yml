@@ -37,7 +37,7 @@ jobs:
           ls /root/.pack
           ls /root/.pack/db
           ls /root/.pack/install
-          cat /root/.pack/pack.toml
+          cat /root/.pack/user/pack.toml
 
           #      - name: Build lib
           #        run: pack install json
