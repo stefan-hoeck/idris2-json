@@ -43,7 +43,7 @@ Main> :exec putStrLn $ encode gorgar
 Main> :exec printLn $ (decode {a = Villain} (encode gorgar))
 ```
 
-More examples can be found in the [tutorial](src/Doc/Tutorial.md).
+More examples can be found in the [tutorial](docs/src/Docs/Tutorial.md).
 
 ## Missing Stuff
 
