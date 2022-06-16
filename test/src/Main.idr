@@ -1,4 +1,4 @@
-module Test.Main
+module Main
 
 import Language.JSON
 import JSON

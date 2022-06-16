@@ -14,7 +14,7 @@ to the highly optimized parser and stringifier of the backend
 does). This tutorial is a literate Idris2 file, hence:
 
 ```idris
-module Doc.Tutorial
+module Docs.Tutorial
 
 import JSON
 import Generics.Derive

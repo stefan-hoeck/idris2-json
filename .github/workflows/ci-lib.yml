@@ -24,39 +24,17 @@ jobs:
   build:
     name: Build ${{ github.repository }} with Idris2 latest
     runs-on: ubuntu-latest
+    env:
+      PACK_DIR: /root/.pack
     strategy:
       fail-fast: false
-    container: snazzybucket/idris2api:latest
+    container: ghcr.io/stefan-hoeck/idris2-pack:latest
     steps:
-      - name: Checkout elab-util
-        uses: actions/checkout@v2
-        with:
-          repository: stefan-hoeck/idris2-elab-util
-      - name: Install elab-util
-        run: make install
-      - name: Checkout sop
-        uses: actions/checkout@v2
-        with:
-          repository: stefan-hoeck/idris2-sop
-      - name: Install sop
-        run: make install
-      - name: Checkout pretty-show
-        uses: actions/checkout@v2
-        with:
-          repository: stefan-hoeck/idris2-pretty-show
-      - name: Install pretty-show
-        run: make install
-      - name: Checkout hedgehog
-        uses: actions/checkout@v2
-        with:
-          repository: stefan-hoeck/idris2-hedgehog
-      - name: Install hedgehog
-        run: make install
       - name: Checkout
         uses: actions/checkout@v2
       - name: Build lib
-        run: make lib
+        run: pack install json
       - name: Build docs
-        run: make docs
-      - name: Build test
-        run: make test
+        run: pack install json-docs
+      - name: Run test
+        run: pack exec json-test -n 1000
