@@ -24,6 +24,8 @@ jobs:
   build:
     name: Build ${{ github.repository }} with Idris2 latest
     runs-on: ubuntu-latest
+    env:
+      PACK_DIR: /root/.pack
     strategy:
       fail-fast: false
     container: ghcr.io/stefan-hoeck/idris2-pack:latest
@@ -32,7 +34,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Test pack
         run: |
-          PACK_DIR="/root/.pack" pack info
+          pack info
           which pack
           ls /root/.pack
           ls /root/.pack/db
