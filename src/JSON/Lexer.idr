@@ -157,15 +157,16 @@ str : (line,start,cur : Nat)
     -> SnocList Char
     -> List Char
     -> (Token, List Char)
-str l s cur sc []          = (TErr (BS l s s) MissingQuote, [])
-str l s cur sc ('"' :: xs) = (TStr (BS l s cur) $ pack $ sc <>> Nil, xs)
-str l s cur sc ('\\' :: xs) = case unesc xs of
-  Left c          => (TErr (BS l cur (cur + c)) InvalidEsc, [])
-  Right (m,c,xs') => str l s (cur+1+m) (sc :< c) (assert_smaller xs xs')
-str l s cur sc (c :: xs)    =
-  if ord c >= 0x20
-     then str l s (cur + 1) (sc :< c) xs
-     else (TErr (BS l cur cur) InvalidChar, [])
+str l s cur sc []        = (TErr (BS l s s) MissingQuote, [])
+str l s cur sc (x :: xs) = case x of
+  '"'  => (TStr (BS l s cur) $ pack $ sc <>> Nil, xs)
+  '\\' => case unesc xs of
+    Left c          => (TErr (BS l cur (cur + c)) InvalidEsc, [])
+    Right (m,c,xs') => str l s (cur+1+m) (sc :< c) (assert_smaller xs xs')
+  _    =>
+    if x >= ' '
+       then str l s (cur + 1) (sc :< x) xs
+       else (TErr (BS l cur cur) InvalidChar, [])
 
 --------------------------------------------------------------------------------
 --          Literal Decoding
@@ -202,6 +203,8 @@ lit l s cur sc (x :: xs) =
 lex : (line,col : Nat) -> SnocList Token -> List Char -> List Token
 lex _ _   sc [] = sc <>> Nil
 lex l cur sc (c :: cs) = case c of
+  ':'  => lex l (cur+1) (sc :< TColon (BS l cur cur)) cs
+  ','  => lex l (cur+1) (sc :< TComma (BS l cur cur)) cs
   '"' =>
     let (t, xs2) := str l cur (cur+1) Lin cs
      in lex l (end t + 1) (sc :< t) (assert_smaller cs xs2)
@@ -210,11 +213,9 @@ lex l cur sc (c :: cs) = case c of
   ']'  => lex l (cur+1) (sc :< TBracketC (BS l cur cur)) cs
   '{'  => lex l (cur+1) (sc :< TBraceO (BS l cur cur)) cs
   '}'  => lex l (cur+1) (sc :< TBraceC (BS l cur cur)) cs
-  ','  => lex l (cur+1) (sc :< TComma (BS l cur cur)) cs
-  ':'  => lex l (cur+1) (sc :< TColon (BS l cur cur)) cs
   '\n' => lex (l+1) 1 sc cs
   _   =>
-    if isSpace c || isControl c then lex l (cur+1) sc cs
+    if isSpace c then lex l (cur+1) sc cs
     else if isLitChar c then
       let (t, xs2) := lit l cur cur Lin (c :: cs)
        in lex l (end t + 1) (sc :< t) (assert_smaller cs xs2)
