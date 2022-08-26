@@ -1,8 +1,16 @@
 module JSON.Parser
 
 import JSON.Lexer
+import Data.String
+import Generics.Derive
 
 %default total
+
+%language ElabReflection
+
+--------------------------------------------------------------------------------
+--          JSON
+--------------------------------------------------------------------------------
 
 public export
 data JSON : Type where
@@ -12,31 +20,6 @@ data JSON : Type where
   JString : String -> JSON
   JArray  : List JSON -> JSON
   JObject : List (String, JSON) -> JSON
-
-hexChar : Int -> Char
-hexChar i = if i < 10 then chr (ord '0' + i) else chr (ord 'A' + i - 10)
-
-encode : String -> String
-encode = go (Lin :< '"') . unpack
-  where go : SnocList Char -> List Char -> String
-        go sc []          = pack (sc <>> ['"'])
-        go sc ('"' :: t)  = go (sc :< '\\' :< '"') t
-        go sc ('\n' :: t) = go (sc :< '\\' :< 'n') t
-        go sc ('\f' :: t) = go (sc :< '\\' :< 'f') t
-        go sc ('\b' :: t) = go (sc :< '\\' :< 'b') t
-        go sc ('\r' :: t) = go (sc :< '\\' :< 'r') t
-        go sc ('\t' :: t) = go (sc :< '\\' :< 't') t
-        go sc ('\\' :: t) = go (sc :< '\\' :< '\\') t
-        go sc ('/'  :: t) = go (sc :< '\\' :< '/') t
-        go sc (c    :: t) =
-          let x := ord c
-           in if x >= 0x20
-                then go (sc :< c) t
-                else let d1 := hexChar $ x `div` 0x1000
-                         d2 := hexChar $ (x `mod` 0x1000) `div` 0x100
-                         d3 := hexChar $ (x `mod` 0x100)  `div` 0x10
-                         d4 := hexChar $ x `mod` 0x10
-                      in go (sc :< '\\' :< 'u' :< d1 :< d2 :< d3 :< d4) t
 
 showValue : SnocList String -> JSON -> SnocList String
 
@@ -96,38 +79,115 @@ depth (JArray xs)   = 1 + assert_total (foldl (\n,j => max n $ depth j) 0 xs)
 depth (JObject xs)  =
   1 + assert_total (foldl (\n,p => max n $ depth (snd p)) 0 xs)
 
-value  : List Token -> Maybe (List Token, JSON)
+--------------------------------------------------------------------------------
+--          Parser
+--------------------------------------------------------------------------------
 
-array  : SnocList JSON -> List Token -> Maybe (List Token, JSON)
+public export
+data ParseErr : Type where
+  LErr             : Bounds -> LexErr -> ParseErr
+  UnmatchedBracket : Bounds -> ParseErr
+  UnmatchedBrace   : Bounds -> ParseErr
+  Unexpected       : Token  -> ParseErr
+  EOI              : ParseErr
 
-object : SnocList (String, JSON) -> List Token -> Maybe (List Token, JSON)
+%runElab derive "ParseErr" [Generic,Meta,Show,Eq]
 
-value (TBracketO :: xs)    = array Lin xs
-value (TBraceO :: xs)      = object Lin xs
-value (TLit "true" :: xs)  = Just (xs, JBool True)
-value (TLit "false" :: xs) = Just (xs, JBool False)
-value (TLit "null" :: xs)  = Just (xs, JNull)
-value (TLit cs :: xs)      = Just (xs, JNumber $ cast cs)
-value (TStr s :: xs)       = Just (xs, JString s)
-value _                    = Nothing
+value  :  List Token -> Either ParseErr (List Token, JSON)
 
-array sv (TBracketC :: xs) = Just (xs, JArray $ sv <>> Nil)
-array sv xs               =
-  let Just (TComma :: xs2, v) := value xs
-        | Just (TBracketC :: xs2, v) => Just (xs2, JArray $ sv <>> [v])
-        | _                          => Nothing
-   in array (sv :< v) (assert_smaller xs xs2)
+array  :  Bounds -- opening bracket
+       -> SnocList JSON
+       -> List Token
+       -> Either ParseErr (List Token, JSON)
 
-object sp (TBraceC :: xs)            = Just (xs, JObject $ sp <>> Nil)
-object sp (TStr s  :: TColon :: xs)  =
-  let Just (TComma :: xs2, v) := value xs
-        | Just (TBraceC :: xs2, v) => Just (xs2, JObject $ sp <>> [(s,v)])
-        | _                        => Nothing
-   in object (sp :< (s, v)) (assert_smaller xs xs2)
-object _ _                           = Nothing
+object :  Bounds
+       -> SnocList (String, JSON)
+       -> List Token
+       -> Either ParseErr (List Token, JSON)
+
+value []        = Left EOI
+value (t :: ts) = case t of
+  TBracketO x  => array x Lin ts
+  TBraceO x    => object x Lin ts
+  TBool _ b    => Right (ts, JBool b)
+  TNull _      => Right (ts, JNull)
+  TNum _ d     => Right (ts, JNumber d)
+  TStr _ s     => Right (ts, JString s)
+  TErr x err   => Left (LErr x err)
+  _            => Left (Unexpected t)
+
+array b sv []                  = Left (UnmatchedBracket b)
+array b sv (TBracketC _ :: xs) = Right (xs, JArray $ sv <>> Nil)
+array b sv xs                  =
+  let Right (TComma _ :: xs2, v) := value xs
+        | Right (TBracketC _ :: xs2, v) => Right (xs2, JArray $ sv <>> [v])
+        | Right (x :: xs2, v)           => Left (Unexpected x)
+        | Right ([],_)                  => Left (UnmatchedBracket b)
+        | Left  EOI                     => Left (UnmatchedBracket b)
+        | Left  err                     => Left err
+   in array b (sv :< v) (assert_smaller xs xs2)
+
+object b sv []                           = Left (UnmatchedBrace b)
+object b sv (TBraceC _ :: xs)            = Right (xs, JObject $ sv <>> Nil)
+object b sv (TStr _ s :: TColon _ :: xs) =
+  let Right (TComma _ :: xs2, v) := value xs
+        | Right (TBraceC _ :: xs2, v) => Right (xs2, JObject $ sv <>> [(s,v)])
+        | Right (x :: xs2, v)         => Left (Unexpected x)
+        | Right ([],_)                => Left (UnmatchedBracket b)
+        | Left  EOI                   => Left (UnmatchedBracket b)
+        | Left  err                   => Left err
+   in object b (sv :< (s,v)) (assert_smaller xs xs2)
+object b sv (TStr _ s :: x :: xs)        = Left (Unexpected x)
+object b sv (TStr _ s :: [])             = Left (UnmatchedBracket b)
+object b sv (x :: xs)                    = Left (Unexpected x)
 
 export
-parse : String -> Maybe JSON
-parse s = case value (lexJSON s) of
-  Just ([], v) =>  Just v
-  _            => Nothing
+parseErrLine : (line : Nat) -> String -> Either ParseErr JSON
+parseErrLine l s = case value (lexJSONLine l s) of
+  Right ([], v)     => Right v
+  Right (x :: _, v) => Left (Unexpected x)
+  Left err      => Left err
+
+export %inline
+parseErr : String -> Either ParseErr JSON
+parseErr = parseErrLine 1
+
+export
+parseMaybe : String -> Maybe JSON
+parseMaybe s = case value (lexJSON s) of
+  Right ([], v) => Just v
+  _             => Nothing
+
+--------------------------------------------------------------------------------
+--          Pretty Printed Errors
+--------------------------------------------------------------------------------
+
+lexErr : LexErr -> String
+lexErr MissingQuote = "missing closing quote"
+lexErr InvalidLit   = "invalid literal"
+lexErr InvalidEsc   = "invalid escape sequence"
+lexErr InvalidChar  = "invalid character"
+
+tokName : Token -> String
+tokName (TBracketO x) = "opening bracket"
+tokName (TBracketC x) = "closing bracket"
+tokName (TBraceO x)   = "opening brace"
+tokName (TBraceC x)   = "closing brace"
+tokName (TComma x)    = "comma"
+tokName (TColon x)    = "colon"
+tokName (TNull x)     = "\"null\""
+tokName (TBool x b)   = "boolean literal"
+tokName (TNum x dbl)  = "double literal"
+tokName (TStr x str)  = "string literal"
+tokName (TErr x y)    = "error : \{lexErr y}"
+
+errLines : String -> Bounds -> String -> String
+errLines str bs tok = unlines $ tokenLines (lines str) bs tok
+
+export
+prettyErr : String -> ParseErr -> String
+prettyErr s (LErr x y)           = errLines s x $ lexErr y
+prettyErr s (UnmatchedBracket x) = errLines s x "unmatched bracket"
+prettyErr s (UnmatchedBrace x)   = errLines s x "unmatched brace"
+prettyErr s (Unexpected x)       = errLines s (bounds x) "unexpected \{tokName x}"
+prettyErr s EOI                  = "unexpected end of input"

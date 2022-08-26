@@ -47,6 +47,17 @@ orElse : Either a b -> Lazy (Either a b) -> Either a b
 orElse r@(Right _) _ = r
 orElse _           v = v
 
+public export
+data DecodingErr : Type where
+  JErr      : JSONErr -> DecodingErr
+  JParseErr : ParseErr -> DecodingErr
+
+%runElab derive "DecodingErr" [Generic,Meta,Show,Eq]
+
+public export
+DecodingResult : Type -> Type
+DecodingResult = Either DecodingErr
+
 --------------------------------------------------------------------------------
 --          Error Formatting
 --------------------------------------------------------------------------------
@@ -92,6 +103,13 @@ export
 formatError : JSONPath -> String -> String
 formatError path msg = "Error in " ++ formatPath path ++ ": " ++ msg
 
+||| Pretty prints a decoding error. In case of a parsing error,
+||| this might be printed on several lines.
+export
+prettyErr : (input : String) -> DecodingErr -> String
+prettyErr _ (JErr (p,s))  = formatError p s
+prettyErr i (JParseErr x) = prettyErr i x
+
 --------------------------------------------------------------------------------
 --          Interface
 --------------------------------------------------------------------------------
@@ -102,8 +120,15 @@ interface FromJSON a  where
   fromJSON : forall v,obj . Value v obj => Parser v a
 
 export %inline
-decodeVia : (0 v : Type) -> Value v obj => FromJSON a => String -> Result a
-decodeVia v s = mapFst (Nil,) (parse {v} s) >>= fromJSON
+decodeVia : (0 v : Type)
+          -> Value v obj
+          => FromJSON a
+          => String
+          -> DecodingResult a
+decodeVia v s =
+  let Right json := parse {v} s   | Left err => Left (JParseErr err)
+      Right res  := fromJSON json | Left p   => Left (JErr p)
+   in Right res
 
 export %inline
 decodeEitherVia : (0 v : Type)
@@ -111,14 +136,14 @@ decodeEitherVia : (0 v : Type)
                 => FromJSON a
                 => String
                 -> Either String a
-decodeEitherVia v = mapFst (uncurry formatError) . decodeVia v
+decodeEitherVia v s = mapFst (prettyErr s) $ decodeVia v s
 
 export %inline
 decodeMaybeVia : (0 v : Type) -> Value v obj => FromJSON a => String -> Maybe a
 decodeMaybeVia v = either (const Nothing) Just . decodeVia v
 
 export %inline
-decode : FromJSON a => String -> Result a
+decode : FromJSON a => String -> DecodingResult a
 decode = decodeVia JSON
 
 export %inline

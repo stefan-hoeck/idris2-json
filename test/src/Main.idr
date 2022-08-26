@@ -193,10 +193,11 @@ weekday = element [Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday]
 --------------------------------------------------------------------------------
 
 roundTrip : Eq a => FromJSON a => ToJSON a => Show a => Gen a -> Property
-roundTrip g = property $ do v <- forAll g
-                            let enc = encode v
-                            footnote enc
-                            Right v === decode enc
+roundTrip g = property $ do
+  v <- forAll g
+  let enc = encode v
+  footnote enc
+  Right v === decode enc
 
 prop_unit : Property
 prop_unit = roundTrip $ pure ()
