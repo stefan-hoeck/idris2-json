@@ -191,3 +191,10 @@ prettyErr s (UnmatchedBracket x) = errLines s x "unmatched bracket"
 prettyErr s (UnmatchedBrace x)   = errLines s x "unmatched brace"
 prettyErr s (Unexpected x)       = errLines s (bounds x) "unexpected \{tokName x}"
 prettyErr s EOI                  = "unexpected end of input"
+
+||| Simple IO utility for testing the parser at the REPL
+export
+printParseJSON : String -> IO ()
+printParseJSON str = case parseErr str of
+  Left err => putStrLn (prettyErr str err)
+  Right v  => putStrLn "Success: \{show v}"
