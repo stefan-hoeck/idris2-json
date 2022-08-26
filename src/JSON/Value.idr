@@ -7,7 +7,7 @@
 module JSON.Value
 
 import Data.List
-import Language.JSON
+import JSON.Parser
 
 ||| In Javascript, numbers are represented as IEEE 64bit
 ||| floating point numbers. Integers can be represented exactly
@@ -114,7 +114,7 @@ Encoder JSON where
   stringify = show
   string    = JString
   number    = JNumber
-  boolean   = JBoolean
+  boolean   = JBool
   null      = JNull
   array     = JArray
   object    = JObject
@@ -128,7 +128,7 @@ Value JSON (List (String,JSON)) where
   parse     = maybe (Left "Couldn't parse JSON.") Right . parse
 
   typeOf JNull        = "Null"
-  typeOf (JBoolean _) = "Boolean"
+  typeOf (JBool _)    = "Boolean"
   typeOf (JNumber _)  = "Number"
   typeOf (JString _)  = "String"
   typeOf (JArray _)   = "Array"
@@ -140,7 +140,7 @@ Value JSON (List (String,JSON)) where
   getNumber (JNumber v) = Just v
   getNumber _           = Nothing
 
-  getBoolean (JBoolean v) = Just v
+  getBoolean (JBool v)  = Just v
   getBoolean _            = Nothing
 
   getArray (JArray v) = Just v

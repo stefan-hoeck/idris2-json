@@ -10,8 +10,8 @@ module JSON.FromJSON
 
 import JSON.ToJSON
 import JSON.Option
+import JSON.Parser
 import JSON.Value
-import Language.JSON
 
 import Generics.Derive
 

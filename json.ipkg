@@ -10,7 +10,9 @@ depends    = base         >= 0.5.1
            , elab-util    >= 0.5.0
 
 modules = JSON
-        , JSON.Value
         , JSON.FromJSON
+        , JSON.Lexer
         , JSON.Option
+        , JSON.Parser
         , JSON.ToJSON
+        , JSON.Value

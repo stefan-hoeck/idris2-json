@@ -1,26 +1,11 @@
 module Main
 
-import Language.JSON
 import JSON
 import Hedgehog
 
 import Generics.Derive
 
 %language ElabReflection
-
---------------------------------------------------------------------------------
---          Fast Eq for Nat
---------------------------------------------------------------------------------
-
--- The default Eq for Nat runs in O(n), which leads to stack overflows
--- for large Nats
-[FastNatEq] Eq Nat where
-  (==) = (==) `on` natToInteger
-
--- The default Ord for Nat runs in O(n), which leads to stack overflows
--- for large Nats
-[FastNatOrd] Ord Nat using FastNatEq where
-  compare = compare `on` natToInteger
 
 --------------------------------------------------------------------------------
 --          Elab Deriving
@@ -161,7 +146,7 @@ integer128 : Gen Integer
 integer128 = integer $ exponentialFrom 0 (-0x100000000000000000000000000000000) 0x100000000000000000000000000000000
 
 nat128 : Gen Nat
-nat128 = nat $ exponential @{FastNatOrd} 0 0x100000000000000000000000000000000
+nat128 = nat $ exponential 0 0x100000000000000000000000000000000
 
 list20 : Gen a -> Gen (List a)
 list20 = list (linear 0 20)
@@ -256,7 +241,7 @@ prop_maybe : Property
 prop_maybe = roundTrip $ maybe (either bool bits32All)
 
 prop_nat : Property
-prop_nat = roundTrip @{FastNatEq} nat128
+prop_nat = roundTrip nat128
 
 prop_np : Property
 prop_np = roundTrip $ np [ integer128, bool, unicode16, maybe string20Ascii ]
