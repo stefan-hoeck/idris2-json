@@ -11,8 +11,8 @@ module JSON.ToJSON
 import Data.List1
 import Data.Vect
 import JSON.Option
+import JSON.Parser
 import JSON.Value
-import Language.JSON
 import Generics.Derive
 
 %language ElabReflection

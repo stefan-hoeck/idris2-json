@@ -7,7 +7,7 @@
 module JSON.Value
 
 import Data.List
-import Language.JSON
+import JSON.Parser
 
 ||| In Javascript, numbers are represented as IEEE 64bit
 ||| floating point numbers. Integers can be represented exactly
@@ -85,7 +85,7 @@ interface Object obj v => Value v obj | v where
   typeOf : v -> String
 
   ||| Tries to convert a string to an intermediare value.
-  parse : String -> Either String v
+  parse : String -> Either ParseErr v
 
   ||| Tries to convert a value to an `Object`.
   getObject : v -> Maybe obj
@@ -114,7 +114,7 @@ Encoder JSON where
   stringify = show
   string    = JString
   number    = JNumber
-  boolean   = JBoolean
+  boolean   = JBool
   null      = JNull
   array     = JArray
   object    = JObject
@@ -125,10 +125,10 @@ Object (List (String,JSON)) JSON where
 
 export %inline
 Value JSON (List (String,JSON)) where
-  parse     = maybe (Left "Couldn't parse JSON.") Right . parse
+  parse     = parseErr
 
   typeOf JNull        = "Null"
-  typeOf (JBoolean _) = "Boolean"
+  typeOf (JBool _)    = "Boolean"
   typeOf (JNumber _)  = "Number"
   typeOf (JString _)  = "String"
   typeOf (JArray _)   = "Array"
@@ -140,7 +140,7 @@ Value JSON (List (String,JSON)) where
   getNumber (JNumber v) = Just v
   getNumber _           = Nothing
 
-  getBoolean (JBoolean v) = Just v
+  getBoolean (JBool v)  = Just v
   getBoolean _            = Nothing
 
   getArray (JArray v) = Just v
