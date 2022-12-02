@@ -2,8 +2,9 @@ module Main
 
 import JSON
 import Hedgehog
-
-import Generics.Derive
+import Derive.Prelude
+import Derive.ToJSON
+import Derive.FromJSON
 
 %language ElabReflection
 
@@ -16,7 +17,12 @@ record Newtype where
   constructor MkNewtype
   field : String
 
-%runElab derive "Newtype" [Generic,Meta,Show,Eq,NewtypeToJSON,NewtypeFromJSON]
+%runElab derive "Newtype" [Show,Eq,ToJSON,FromJSON]
+
+-- example newtype
+data Elem = H | He | B | C | N | O | F | Ne
+
+%runElab deriveEnum "Elem" [Show, Eq, Ord, ToJSON, FromJSON]
 
 -- sum type with default encoding behavior: this will
 -- be encoded as a mapping from constructor argument names
@@ -27,7 +33,7 @@ data Sum : (a : Type) -> Type where
   Con2 : (treasure : List a) -> (weight : Bits64) -> Sum a
   Con3 : (foo : Maybe a) -> (bar : Either Bool a) -> Sum a
 
-%runElab derive "Sum" [Generic,Meta,Show,Eq,ToJSON,FromJSON]
+%runElab derive "Sum" [Show,Eq,ToJSON,FromJSON]
 
 -- this sum type will be encoded in the same manner as `Sum`
 -- but without the additional "tag" field: This should
@@ -38,13 +44,10 @@ data Sum2 : (a : Type) -> Type where
   Con22 : (treasure : List a) -> (weight : Bits64) -> Sum2 a
   Con23 : (foo : Maybe a) -> (bar : Either Bool a) -> Sum2 a
 
-%runElab derive "Sum2" [Generic,Meta,Show,Eq]
+opts2 : Options
+opts2 = MkOptions UntaggedValue False id id
 
-ToJSON a => ToJSON (Sum2 a) where
-  toJSON = genToJSON UntaggedValue
-
-FromJSON a => FromJSON (Sum2 a) where
-  fromJSON = genFromJSON UntaggedValue
+%runElab derive "Sum2" [Show,Eq,customToJSON opts2, customFromJSON opts2]
 
 -- this sum type will be encoded as `Sum` but instead of adding
 -- a "tag" for the constructor name, it will be wrapped up
@@ -53,15 +56,12 @@ FromJSON a => FromJSON (Sum2 a) where
 data Sum3 : (a : Type) -> Type where
   Con31 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum3 a
   Con32 : (treasure : List a) -> (weight : Bits64) -> Sum3 a
-  Con33 : (foo : Maybe a) -> (bar : Either Bool a) -> Sum3 a
+  Con33 : Maybe a -> Either Bool a -> Sum3 a
 
-%runElab derive "Sum3" [Generic,Meta,Show,Eq]
+opts3 : Options
+opts3 = MkOptions ObjectWithSingleField False id id
 
-ToJSON a => ToJSON (Sum3 a) where
-  toJSON = genToJSON ObjectWithSingleField
-
-FromJSON a => FromJSON (Sum3 a) where
-  fromJSON = genFromJSON ObjectWithSingleField
+%runElab derive "Sum3" [Show,Eq,customToJSON opts3, customFromJSON opts3]
 
 -- this sum will be encoded as an array of two elements:
 -- the first corresponding to the constructor name, the second
@@ -69,41 +69,35 @@ FromJSON a => FromJSON (Sum3 a) where
 data Sum4 : (a : Type) -> Type where
   Con41 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum4 a
   Con42 : (treasure : List a) -> (weight : Bits64) -> Sum4 a
-  Con43 : (foo : Maybe a) -> (bar : Either Bool a) -> Sum4 a
+  Con43 : Maybe a -> Either Bool a -> Sum4 a
 
-%runElab derive "Sum4" [Generic,Meta,Show,Eq]
+opts4 : Options
+opts4 = MkOptions TwoElemArray False id id
 
-ToJSON a => ToJSON (Sum4 a) where
-  toJSON = genToJSON TwoElemArray
-
-FromJSON a => FromJSON (Sum4 a) where
-  fromJSON = genFromJSON TwoElemArray
+%runElab derive "Sum4" [Show,Eq,customToJSON opts4, customFromJSON opts4]
 
 -- this sum will be encoded as a tagged object with custom
 -- names for the tag and content field
 data Sum5 : (a : Type) -> Type where
   Con51 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum5 a
   Con52 : (treasure : List a) -> (weight : Bits64) -> Sum5 a
-  Con53 : (foo : Maybe a) -> (bar : Either Bool a) -> Sum5 a
+  Con53 : Maybe a -> Either Bool a -> Sum5 a
 
-%runElab derive "Sum5" [Generic,Meta,Show,Eq]
+opts5 : Options
+opts5 = MkOptions (TaggedObject "v" "c") False id id
 
-ToJSON a => ToJSON (Sum5 a) where
-  toJSON = genToJSON (TaggedObject "v" "c")
-
-FromJSON a => FromJSON (Sum5 a) where
-  fromJSON = genFromJSON (TaggedObject "v" "c")
+%runElab derive "Sum5" [Show,Eq,customToJSON opts5, customFromJSON opts5]
 
 -- since records have only one constructor, they can be encoded
 -- without having to care about the different techniques to
 -- distinguish between constructors
 record ARecord where
-  constructor MkRecord
+  constructor MkRec
   anInt   : Integer
-  perhaps : Maybe (Sum Int)
+  perhaps : Maybe (Sum Nat)
   foo     : Either String Bool
 
-%runElab derive "ARecord" [Generic,Meta,Show,Eq,RecordToJSON,RecordFromJSON]
+%runElab derive "ARecord" [Show,Eq,ToJSON,FromJSON]
 
 -- enum types (all nullary constructors) can be encoded just
 -- as a string representing the constructor's name
@@ -115,11 +109,31 @@ data Weekday = Monday
              | Saturday
              | Sunday
 
-%runElab derive "Weekday" [Generic,Meta,Show,Eq,EnumToJSON,EnumFromJSON]
+%runElab deriveEnum "Weekday" [Show,Eq,ToJSON,FromJSON]
 
 --------------------------------------------------------------------------------
 --          Generators
 --------------------------------------------------------------------------------
+
+toSum2 : Sum a -> Sum2 a
+toSum2 (Con1 n a f) = Con21 n a f
+toSum2 (Con2 t w)   = Con22 t w
+toSum2 (Con3 f b)   = Con23 f b
+
+toSum3 : Sum a -> Sum3 a
+toSum3 (Con1 n a f) = Con31 n a f
+toSum3 (Con2 t w)   = Con32 t w
+toSum3 (Con3 f b)   = Con33 f b
+
+toSum4 : Sum a -> Sum4 a
+toSum4 (Con1 n a f) = Con41 n a f
+toSum4 (Con2 t w)   = Con42 t w
+toSum4 (Con3 f b)   = Con43 f b
+
+toSum5 : Sum a -> Sum5 a
+toSum5 (Con1 n a f) = Con51 n a f
+toSum5 (Con2 t w)   = Con52 t w
+toSum5 (Con3 f b)   = Con53 f b
 
 bits8All : Gen Bits8
 bits8All = bits8 $ linear 0 255
@@ -166,24 +180,18 @@ string20Unicode16 = string20 unicode16
 vect13 : Gen a -> Gen (Vect 13 a)
 vect13 = vect 13
 
-newtype : Gen String
-newtype = string20 unicode16
+newtype : Gen Newtype
+newtype = MkNewtype <$> string20 unicode16
 
-sumSop : Gen (SOP I [ [String,Bits32,Bool]
-                    , [List Int, Bits64]
-                    , [Maybe Int, Either Bool Int]
-                    ])
-sumSop = sop $ MkPOP [ [ string20 alphaNum, bits32All, bool ]
-                       , [ list20 intAll, bits64All ]
-                       , [ maybe intAll, either bool intAll ]
-                       ]
-
-sum : Gen (Sum Int)
-sum = map to sumSop
+sum : Gen a -> Gen (Sum a)
+sum g = choice
+  [ [| Con1 string20Ascii bits32All bool |]
+  , [| Con2 (list20 g) bits64All |]
+  , [| Con3 (maybe g) (either bool g) |]
+  ]
 
 rec : Gen ARecord
-rec = map to $ sop $
-      MkPOP [[integer128, maybe sum, either string20Unicode16 bool]]
+rec = [| MkRec integer128 (maybe $ sum nat128) (either string20Unicode16 bool) |]
 
 weekday : Gen Weekday
 weekday = element [Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday]
@@ -191,7 +199,7 @@ weekday = element [Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday]
 --------------------------------------------------------------------------------
 --          Properties
 --------------------------------------------------------------------------------
-
+--
 roundTrip : Eq a => FromJSON a => ToJSON a => Show a => Gen a -> Property
 roundTrip g = property $ do
   v <- forAll g
@@ -244,12 +252,6 @@ prop_maybe = roundTrip $ maybe (either bool bits32All)
 prop_nat : Property
 prop_nat = roundTrip nat128
 
-prop_np : Property
-prop_np = roundTrip $ np [ integer128, bool, unicode16, maybe string20Ascii ]
-
-prop_ns : Property
-prop_ns = roundTrip $ ns [ integer128, bool, unicode16, maybe string20Ascii ]
-
 prop_pair : Property
 prop_pair = roundTrip [| (,) (list1_20 bool) (maybe ascii) |]
 
@@ -263,19 +265,19 @@ prop_string : Property
 prop_string = roundTrip $ string20 unicode16
 
 prop_sum : Property
-prop_sum = roundTrip {a = Sum Int} (map to sumSop)
+prop_sum = roundTrip (sum bits8All)
 
 prop_sum2 : Property
-prop_sum2 = roundTrip {a = Sum2 Int} (map to sumSop)
+prop_sum2 = roundTrip (map toSum2 $ sum bits16All)
 
 prop_sum3 : Property
-prop_sum3 = roundTrip {a = Sum3 Int} (map to sumSop)
+prop_sum3 = roundTrip (map toSum3 $ sum bits16All)
 
 prop_sum4 : Property
-prop_sum4 = roundTrip {a = Sum4 Int} (map to sumSop)
+prop_sum4 = roundTrip (map toSum4 $ sum bits16All)
 
 prop_sum5 : Property
-prop_sum5 = roundTrip {a = Sum5 Int} (map to sumSop)
+prop_sum5 = roundTrip (map toSum4 $ sum bits16All)
 
 prop_vect : Property
 prop_vect = roundTrip $ vect13 intAll
@@ -300,8 +302,6 @@ main = test . pure $ MkGroup "JSON" [
           , ("prop_maybe", prop_maybe)
           , ("prop_nat", prop_nat)
           , ("prop_newtype", prop_newtype)
-          , ("prop_np", prop_np)
-          , ("prop_ns", prop_ns)
           , ("prop_pair", prop_pair)
           , ("prop_rec", prop_rec)
           , ("prop_string", prop_string)

@@ -2,20 +2,21 @@
 ||| via an intermediate `Value` representation.
 |||
 ||| For regular algebraic data types, implementations can automatically
-||| be derived using elaborator reflection.
+||| be derived using elaborator reflection (see module `Derive.FromJSON`)
 |||
 ||| Operators and functionality strongly influenced by Haskell's aeson
 ||| library
 module JSON.FromJSON
 
+import Derive.Prelude
 import JSON.ToJSON
 import JSON.Option
 import JSON.Parser
 import JSON.Value
 
-import Generics.Derive
-
 %language ElabReflection
+
+%default total
 
 --------------------------------------------------------------------------------
 --          Types
@@ -24,7 +25,7 @@ import Generics.Derive
 public export
 data JSONPathElement = Key String | Index Bits32
 
-%runElab derive "JSONPathElement" [Generic,Meta,Show,Eq]
+%runElab derive "JSONPathElement" [Show,Eq]
 
 public export
 JSONPath : Type
@@ -48,11 +49,15 @@ orElse r@(Right _) _ = r
 orElse _           v = v
 
 public export
+(<|>) : Parser v a -> Parser v a -> Parser v a
+f <|> g = \vv => f vv `orElse` g vv
+
+public export
 data DecodingErr : Type where
   JErr      : JSONErr -> DecodingErr
   JParseErr : ParseErr -> DecodingErr
 
-%runElab derive "DecodingErr" [Generic,Meta,Show,Eq]
+%runElab derive "DecodingErr" [Show,Eq]
 
 public export
 DecodingResult : Type -> Type
@@ -164,10 +169,10 @@ fail s = Left (Nil,s)
 
 typeMismatch : Value v obj => String -> Parser v a
 typeMismatch expected actual =
-  fail $ #"expected \#{expected}, but encountered \#{typeOf actual}"#
+  fail $ "expected \{expected}, but encountered \{typeOf actual}"
 
 unexpected : Value v obj => Parser v a
-unexpected actual = fail $ #"unexpected \#{typeOf actual}"#
+unexpected actual = fail $ "unexpected \{typeOf actual}"
 
 export %inline
 modifyFailure : (String -> String) -> Result a -> Result a
@@ -181,7 +186,7 @@ prependFailure = modifyFailure . (++)
 
 export %inline
 prependContext : String -> Result a -> Result a
-prependContext name = prependFailure #"parsing \#{name} failed, "#
+prependContext name = prependFailure "parsing \{name} failed, "
 
 infixr 3 <?>, .:, .:?, .:!
 
@@ -195,9 +200,10 @@ withValue :  Value v obj
           -> (name : Lazy String)
           -> Parser t a
           -> Parser v a
-withValue s get n f val = case get val of
-                            Just v  => f v
-                            Nothing => prependContext n $ typeMismatch s val
+withValue s get n f val =
+  case get val of
+    Just v  => f v
+    Nothing => prependContext n $ typeMismatch s val
 
 export %inline
 withObject : Value v obj => Lazy String -> Parser obj a -> Parser v a
@@ -212,6 +218,11 @@ withString : Value v obj => Lazy String -> Parser String a -> Parser v a
 withString = withValue "String" getString
 
 export %inline
+eqString : Value v obj => Lazy String -> String -> Parser v ()
+eqString n s = withString n $ \s' =>
+  if s == s' then Right () else fail "expected '\{s}' but got '\{s'}'"
+
+export %inline
 withNumber : Value v obj => Lazy String -> Parser Double a -> Parser v a
 withNumber = withValue "Number" getNumber
 
@@ -222,16 +233,17 @@ withInteger s f =
     let n = the Integer (cast d)
     in if d == fromInteger n
           then f n
-          else fail #"not an integer: \#{show d}"#
+          else fail "not an integer: \{show d}"
 
 export
 withLargeInteger : Value v obj => Lazy String -> Parser Integer a -> Parser v a
 withLargeInteger s f v =
   withInteger s f v `orElse` withString s parseStr v
   where parseStr : Parser String a
-        parseStr str = case parseInteger {a = Integer} str of
-                            Nothing => fail #"not an integer: \#{show str}"#
-                            Just n  => f n
+        parseStr str =
+          case parseInteger {a = Integer} str of
+            Nothing => fail "not an integer: \{show str}"
+            Just n  => f n
 
 export
 boundedIntegral :  Num a
@@ -243,7 +255,7 @@ boundedIntegral :  Num a
 boundedIntegral s lo up =
   withInteger s $ \n => if n >= lo && n <= up
                          then pure $ fromInteger n
-                         else fail #"integer out of bounds: \#{show n}"#
+                         else fail "integer out of bounds: \{show n}"
 
 export
 boundedLargeIntegral :  Num a
@@ -255,11 +267,20 @@ boundedLargeIntegral :  Num a
 boundedLargeIntegral s lo up =
   withLargeInteger s $ \n => if n >= lo && n <= up
                               then pure $ fromInteger n
-                              else fail #"integer out of bounds: \#{show n}"#
+                              else fail "integer out of bounds: \{show n}"
 
 export %inline
 withArray : Value v obj => Lazy String -> Parser (List v) a -> Parser v a
 withArray = withValue "Array" getArray
+
+export %inline
+withArrayN :
+     Value v obj
+  => (n : Nat)
+  -> Lazy String
+  -> Parser (Vect n v) a
+  -> Parser v a
+withArrayN n = withValue "Array of length \{show n}" (getArrayN n)
 
 ||| See `.:`
 export
@@ -267,7 +288,7 @@ explicitParseField : Object obj v => Value v obj =>
                      Parser v a -> obj -> Parser String a
 explicitParseField p o key =
   case lookup key o of
-       Nothing => fail #"key \#{show key} not found"#
+       Nothing => fail "key \{show key} not found"
        Just v  => p v <?> Key key
 
 ||| See `.:?`
@@ -281,12 +302,12 @@ explicitParseFieldMaybe p o key =
 
 ||| See `.:!`
 export
-explicitParseFieldMaybe' : Object obj v => Value v obj =>
-                           Parser v a -> obj -> Parser String (Maybe a)
+explicitParseFieldMaybe' : Encoder v => Object obj v => Value v obj =>
+                           Parser v a -> obj -> Parser String a
 explicitParseFieldMaybe' p o key =
   case lookup key o of
-       Nothing   => Right Nothing
-       Just v    => Just <$> p v <?> Key key
+       Nothing   => p null <?> Key key
+       Just v    => p v <?> Key key
 
 ||| Retrieve the value associated with the given key of an `IObject`.
 ||| The result is `empty` if the key is not present or the value cannot
@@ -312,14 +333,12 @@ export
 (.:?) = explicitParseFieldMaybe fromJSON
 
 ||| Retrieve the value associated with the given key of an `IObject`
-||| The result is `Nothing` if the key is not present or 'empty' if the
-||| value cannot be converted to the desired type.
+||| passing on `Null` in case the given key is missing.
 |||
-||| This differs from `.:?` by attempting to parse `Null` the same as any
-||| other JSON value, instead of interpreting it as `Nothing`.
+||| This differs from `(.:?)` in that it can be used with any converter
+||| accepting `Null` as an input.
 export
-(.:!) : Object obj v => Value v obj => FromJSON a =>
-        obj -> Parser String (Maybe a)
+(.:!) : Encoder v => Object obj v => Value v obj => FromJSON a => obj -> Parser String a
 (.:!) = explicitParseFieldMaybe' fromJSON
 
 ||| Function variant of `.:`.
@@ -336,8 +355,8 @@ parseFieldMaybe = (.:?)
 
 ||| Function variant of `.:!`.
 export
-parseFieldMaybe' : Object obj v => Value v obj => FromJSON a =>
-                   obj -> Parser String (Maybe a)
+parseFieldMaybe' : Encoder v => Object obj v => Value v obj => FromJSON a =>
+                   obj -> Parser String a
 parseFieldMaybe' = (.:!)
 
 --------------------------------------------------------------------------------
@@ -430,253 +449,71 @@ FromJSON a => FromJSON (List a) where
 export
 FromJSON a => FromJSON (List1 a) where
   fromJSON = withArray "List1" $
-    \case Nil    => fail #"expected non-empty list"#
+    \case Nil    => fail "expected non-empty list"
           h :: t => traverse fromJSON (h ::: t)
 
 export
 {n : Nat} -> FromJSON a => FromJSON (Vect n a) where
-  fromJSON = withArray #"Vect \#{show n}"# $
+  fromJSON = withArray "Vect \{show n}" $
     \vs => case toVect n vs of
                 Just vect => traverse fromJSON vect
-                Nothing   => fail #"expected list of length \#{show n}"#
+                Nothing   => fail "expected list of length \{show n}"
 
 export
-(FromJSON a, FromJSON b) => FromJSON (Either a b) where
+FromJSON a => FromJSON b => FromJSON (Either a b) where
   fromJSON = withObject "Either" $ \o =>
                map Left (o .: "Left") `orElse` map Right (o .: "Right")
 
---------------------------------------------------------------------------------
---          SOP Implementations
---------------------------------------------------------------------------------
-
-np : Value v obj => (all : NP (FromJSON . f) ks) => Parser (List v) (NP f ks)
-np vs = case fromListNP all vs of
-          Just npVS => hctraverse (FromJSON . f) fromJSON npVS
-          Nothing   => fail #"expected array of \#{show $ hsize all} values"#
-
 export
-NP (FromJSON . f) ks => FromJSON (NP f ks) where
-  fromJSON = withArray "NP" np
+FromJSON a => FromJSON b => FromJSON (a, b) where
+  fromJSON = withArray "Pair" $
+    \case [x,y] => [| MkPair (fromJSON x) (fromJSON y) |]
+          _     => fail "expected a pair of values"
 
-export
-(FromJSON a, FromJSON b) => FromJSON (a,b) where
-  fromJSON = map (\[x,y] => (x,y)) . fromJSON {a = NP I [a,b] }
-
-firstSuccess :  NP (K (Parser v a)) ts -> Parser v a
-firstSuccess []        _ = fail #"Can't parse nullary sum"#
-firstSuccess (f :: []) o = f o
-firstSuccess (f :: fs) o = f o `orElse` firstSuccess fs o
-
-ns : Value v obj =>
-     (all : NP (FromJSON . f) ks) => Parser v (NS f ks)
-ns = withObject "NS"
-   $ firstSuccess
-   $ hcliftA2 (FromJSON . f) parse (injectionsNP all) (indices all)
-  where parse : FromJSON (f a) =>
-                (f a -> NS f ks) -> Bits32 -> obj -> Result (NS f ks)
-        parse f ix o = map f (o .: show ix)
-
-export
-NP (FromJSON . f) ks => FromJSON (NS f ks) where
-  fromJSON = ns
-
-||| Decodes a newtype-like sum of products
-||| (exactly one single value constructor) by wrapping
-||| the decoded value in `MkSOP . Z`.
-export
-sopNewtype : Value v obj => FromJSON (f k) => Parser v (SOP f [[k]])
-sopNewtype = map (\x => MkSOP $ Z [x]) . fromJSON
-
-consAsEnum :  Value v obj
-           => String
-           -> NP_ (List k) (ConInfo_ k) kss
-           -> (0 prf : EnumType kss)
-           -> Parser v (NS_ (List k) (NP_ k f) kss)
-consAsEnum tn np prf =
-  withString tn $ \s => firstSuccess (hliftA2 run np (nullaryInjections np prf)) s
-  where run :  ConInfo_ k ks
-            -> NS_ (List k) (NP f) kss
-            -> Parser String (NS_ (List k) (NP f) kss)
-        run i res s = if i.conName == s then Right res
-                                        else fail #"expected \#{i.conName}"#
-
-||| Decodes an enum-like sum of products
-||| (only nullary constructors) by trying to extract one of the
-||| constructors' name
-export
-sopEnum :  Value v obj
-        => TypeInfo' k kss
-        -> {auto 0 prf : EnumType kss}
-        -> Parser v (SOP f kss)
-sopEnum (MkTypeInfo _ tn cs) v = MkSOP <$> consAsEnum tn cs prf v
-
--- Decodes an applied, record-like constructor as list of key-value pairs.
-conFields : Value v obj => NP (FromJSON . f) ks =>
-            String -> NP (K String) ks -> Parser v (NP f ks)
-conFields cn names = withObject cn $ \o =>
-                       hctraverse (FromJSON . f) (parseField o) names
-
-untagged : Value v obj => NP (FromJSON . f) ks =>
-           ConInfo ks -> Parser v (NP f ks)
-untagged info = maybe fromJSON (conFields info.conName) (argNames info)
-
-||| Decodes a single-constructor sum of products. The
-||| constructor's name is ignored.
-export
-sopRecord : Value v obj => NP (FromJSON . f) ks =>
-            TypeInfo [ks] -> Parser v (SOP f [ks])
-sopRecord (MkTypeInfo _ n [i]) v = map (MkSOP . Z) (untagged i v)
-
--- Decodes an applied constructor as a tagged object, if it is record-like,
--- that is, all fields do have a field name. Otherwise, it is
--- encoded as a two-field object, one field for the constructor's name
--- the other for the encoded heterogeneous array.
-tagged :  Value v obj
-       => NP (FromJSON . f) ks
-       => (tagField : String)
-       -> (contentField : String)
-       -> ConInfo ks
-       -> Parser v (NP f ks)
-tagged tf cf ci v =
-  do nm <- withObject ci.conName (.: tf) v
-     if nm == ci.conName
-        then case argNames ci of
-                  Nothing => withObject ci.conName (.: cf) v
-                  Just ns => conFields ci.conName ns v
-        else fail #"expected \#{ci.conName}"#
-
--- Decodes a constructer as a single-field object. The constructor's name
--- is used as the field name.
-asObject : Value v obj => NP (FromJSON . f) ks =>
-           (typeName : String) -> ConInfo ks -> Parser v (NP f ks)
-asObject tn i@(MkConInfo _ n _) =
-  withObject tn $ \o => explicitParseField (untagged i) o n
-
--- Decodes a single constructor as a two element array: The first element
--- being the constructor's name, the second its encoded values.
-asTwoElemArray : Value v obj => NP (FromJSON . f) ks =>
-                 (typeName : String) -> ConInfo ks -> Parser v (NP f ks)
-asTwoElemArray tn i@(MkConInfo _ cn _) =
-  withArray tn $ \vs => case vs of
-                             [n,c] => do n2 <- fromJSON n
-                                         if n2 == cn
-                                            then untagged i c
-                                            else fail #"expected \#{cn} but got \#{n2}"#
-                             _     => fail #"expected 2-element array"#
-
-||| Decodes a sum of products as specified by the passed
-||| `SumEncoding` (see its documentation for details) using
-||| the given `TypeInfo` to decode constructor and argument names.
+||| Tries to decode a value encoded as a single field object of the given name.
 |||
-||| See also `sopRecord` for decoding values with a single constructor,
-||| `sopEnum` for decoding enum types (only nullary constructors),
-||| and `sopNewtype` for decoding newtype wrappers.
+||| This corresponds to the `ObjectWithSingleField` option
+||| for encoding sum types.
 export
-sop : Value v obj
-    => (all : POP (FromJSON . f) kss)
-    => SumEncoding
-    -> TypeInfo' k kss
-    -> Parser v (SOP_ k f kss)
-sop {all = MkPOP nps} enc (MkTypeInfo _ tn cs) =
-  case enc of
-       UntaggedValue         => impl untagged
-       ObjectWithSingleField => impl (asObject tn)
-       TwoElemArray          => impl (asTwoElemArray tn)
-       (TaggedObject tf cf)  => impl (tagged tf cf)
+fromSingleField :
+     Object obj v
+  => Value v obj
+  => (tpe : Lazy String)
+  -> Parser (String,v) a
+  -> Parser v a
+fromSingleField n f = withObject n $ \o => case pairs o of
+  [p] => f p
+  _   => fail "expected single field object"
 
-  where injSOP : NP_ (List k) (InjectionSOP f kss) kss
-        injSOP = hmap (MkSOP .) $ injectionsNP nps
-
-        impl : (forall ks . NP (FromJSON . f) ks =>
-                            ConInfo ks -> Parser v (NP f ks))
-             -> Parser v (SOP f kss)
-        impl g = firstSuccess $ hcliftA2 (NP $ FromJSON . f) apply injSOP cs
-          where apply :  NP_ k (FromJSON . f) ts
-                      => (NP_ k f ts -> SOP_ k f kss)
-                      -> ConInfo_ k ts
-                      -> Parser v (SOP_ k f kss)
-                apply f c = map f . g c
-
---------------------------------------------------------------------------------
---          Generic Decoders
---------------------------------------------------------------------------------
-
-||| Generic version of `sopNewtype`.
+||| Tries to decode a value encoded as a two-element array with the given
+||| constructor name.
+|||
+||| This corresponds to the `TwoElemArray` option
+||| for encoding sum types.
 export
-genNewtypeFromJSON : Value v obj => Generic a [[k]] => FromJSON k => Parser v a
-genNewtypeFromJSON = map to . sopNewtype
+fromTwoElemArray :
+     Object obj v
+  => Value v obj
+  => (tpe : Lazy String)
+  -> Parser (String,v) a
+  -> Parser v a
+fromTwoElemArray n f =
+  withArrayN 2 n $ \[x,y] => withString n (\s => f (s,y)) x
 
-||| Generic version of `sopEnum`.
+||| Tries to decode a value encoded as a tagged object with the given
+||| tag and content field, plus tag value.
+|||
+||| This corresponds to the `TaggedObject` option
+||| for encoding sum types.
 export
-genEnumFromJSON :  Value v obj => Meta a kss => {auto 0 prf : EnumType kss}
-                -> Parser v a
-genEnumFromJSON = map to . sopEnum (metaFor a)
-
-||| Like `genEnumFromJSON`, but uses the given function to adjust
-||| constructor names before being used as tags.
-export
-genEnumFromJSON' :  Value v obj => Meta a kss => {auto 0 prf : EnumType kss}
-                 -> (String -> String) -> Parser v a
-genEnumFromJSON' f = let meta = adjustConnames f (metaFor a)
-                      in map to . sopEnum meta {prf}
-
-||| Generic version of `sopRecord`.
-export
-genRecordFromJSON : Value v obj => Meta a [ks] => NP FromJSON ks => Parser v a
-genRecordFromJSON = map to . sopRecord (metaFor a)
-
-||| Like `genRecordFromJSON`, but uses the given function to adjust
-||| field names before being used as tags.
-export
-genRecordFromJSON' : Value v obj => Meta a [ks] => NP FromJSON ks =>
-                     (String -> String) -> Parser v a
-genRecordFromJSON' f = let meta = adjustFieldNames f (metaFor a)
-                        in map to . sopRecord meta
-
-export
-genFromJSON : Value v obj => Meta a code => POP FromJSON code =>
-              SumEncoding -> Parser v a
-genFromJSON enc = map to . sop enc (metaFor a)
-
-export
-genFromJSON' :  Value v obj
-             => Meta a code
-             => POP FromJSON code
-             => (adjFieldLabel : String -> String)
-             -> (adjConstructorTag : String -> String)
-             -> SumEncoding
-             -> Parser v a
-genFromJSON' ff fc enc = let meta = adjustInfo ff fc (metaFor a)
-                          in map to . sop enc meta
-
---------------------------------------------------------------------------------
---          Elab Deriving
---------------------------------------------------------------------------------
-
-namespace Derive
-  export
-  customFromJSON : TTImp -> DeriveUtil -> InterfaceImpl
-  customFromJSON tti g = MkInterfaceImpl "FromJSON" Export []
-                           `(MkFromJSON ~(tti))
-                           (implementationType `(FromJSON) g)
-
-  ||| Derives a `FromJSON` implementation for the given data type
-  export
-  FromJSON : DeriveUtil -> InterfaceImpl
-  FromJSON = customFromJSON `(genFromJSON defaultTaggedObject)
-
-  ||| Derives a `FromJSON` implementation for the given single-constructor
-  ||| data type
-  export
-  RecordFromJSON : DeriveUtil -> InterfaceImpl
-  RecordFromJSON = customFromJSON `(genRecordFromJSON)
-
-  ||| Derives a `FromJSON` implementation for the given enum type
-  export
-  EnumFromJSON : DeriveUtil -> InterfaceImpl
-  EnumFromJSON = customFromJSON `(\v => genEnumFromJSON v)
-
-  ||| Derives a `FromJSON` implementation for the given newtype
-  export
-  NewtypeFromJSON : DeriveUtil -> InterfaceImpl
-  NewtypeFromJSON = customFromJSON `(genNewtypeFromJSON)
+fromTaggedObject :
+     Object obj v
+  => Value v obj
+  => (tpe : Lazy String)
+  -> (tagField, contentField : String)
+  -> Parser (String,v) a
+  -> Parser v a
+fromTaggedObject n tf cf f = withObject n $ \o => do
+  s <- parseField o tf
+  v <- explicitParseField pure o cf
+  f (s,v)

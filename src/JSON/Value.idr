@@ -7,6 +7,7 @@
 module JSON.Value
 
 import Data.List
+import Data.Vect
 import JSON.Parser
 
 ||| In Javascript, numbers are represented as IEEE 64bit
@@ -74,6 +75,7 @@ largeInteger n = if abs n <= maxSafeInteger
 public export
 interface Object obj v | obj where
   lookup : String -> obj -> Maybe v
+  pairs  : obj -> List (String,v)
 
 ||| Abstraction over JSON value representation for decoding.
 public export
@@ -105,6 +107,10 @@ interface Object obj v => Value v obj | v where
   ||| `True`, if the value in question is `null`.
   isNull : v -> Bool
 
+public export
+getArrayN : Value v obj => (n : Nat) -> v -> Maybe (Vect n v)
+getArrayN n x = getArray x >>= toVect n
+
 --------------------------------------------------------------------------------
 --          Implementations
 --------------------------------------------------------------------------------
@@ -122,6 +128,7 @@ Encoder JSON where
 export %inline
 Object (List (String,JSON)) JSON where
   lookup = Data.List.lookup
+  pairs = id
 
 export %inline
 Value JSON (List (String,JSON)) where

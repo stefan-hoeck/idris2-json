@@ -2,7 +2,7 @@ module JSON.Lexer
 
 import Data.Nat
 import Data.String
-import Generics.Derive
+import Derive.Prelude
 
 %default total
 
@@ -49,7 +49,7 @@ data LexErr : Type where
   InvalidEsc       : LexErr
   InvalidChar      : LexErr
 
-%runElab derive "LexErr" [Generic,Meta,Show,Eq]
+%runElab deriveEnum "LexErr" [Show,Eq,Ord]
 
 --------------------------------------------------------------------------------
 --          Bounds
@@ -62,7 +62,7 @@ record Bounds where
   startCol : Nat
   endCol   : Nat
 
-%runElab derive "Bounds" [Generic,Meta,Show,Eq]
+%runElab derive "Bounds" [Show,Eq]
 
 --------------------------------------------------------------------------------
 --          Token
@@ -82,7 +82,7 @@ data Token : Type where
   TStr      : Bounds -> String -> Token
   TErr      : Bounds -> LexErr -> Token
 
-%runElab derive "Token" [Generic,Meta,Show,Eq]
+%runElab derive "Token" [Show,Eq]
 
 export
 bounds : Token -> Bounds
