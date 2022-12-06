@@ -2,8 +2,6 @@ module Derive.FromJSON
 
 import JSON.Option
 import JSON.FromJSON
-import public Derive.Enum
-import public Derive.Record
 import public Derive.Show
 
 %default total
@@ -60,16 +58,16 @@ vobj = varStr obj
 matchArray : SnocList (BoundArg 2 p) -> TTImp -> TTImp
 matchArray [<]                  s = s
 matchArray (sx :< BA _ [_,y] _) s =
-  matchArray sx `(~(bindVar y.nameStr) :: ~(s))
+  matchArray sx `(~(bindVar y) :: ~(s))
 
 constClause : DCon -> Clause
 constClause c = c.tag .= c.applied
 
-matchEither : (pat,res : TTImp) -> Name -> TTImp
+matchEither : (pat,res : TTImp) -> String -> TTImp
 matchEither pat res x =
   `(case ~(pat) of
-     Right ~(bindVar x.nameStr) => ~(res)
-     Left e                     => Left e)
+     Right ~(bindVar x) => ~(res)
+     Left e             => Left e)
 
 ||| Top-level definition of the `FromJSON` implementation for the given data type.
 export
@@ -99,7 +97,7 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
     where go : SnocList (BoundArg 2 Regular) -> TTImp -> TTImp
           go [<]                    res = res
           go (sx :< (BA a [x,y] _)) res =
-            let pat := assertIfRec nms a.type `(fromJSON ~(var y))
+            let pat := assertIfRec nms a.type `(fromJSON ~(varStr y))
              in go sx (matchEither pat res x)
 
   consts : List DCon -> TTImp
@@ -173,44 +171,18 @@ err : Named a => a -> TTImp
 err v = primVal $ Str $ "Unexpected constructor tag for \{v.nameStr}: "
 
 export
-customFromJSON : Options -> List Name -> ParamTypeInfo -> List TopLevel
+customFromJSON : Options -> List Name -> ParamTypeInfo -> Res (List TopLevel)
 customFromJSON o nms p =
   let fun  := funName p "fromJson"
       impl := implName p "FromJSON"
-   in [ TL (fromJsonClaim fun p)
-           (fromJsonDef nms o p.namePrim (err p) fun p.info)
-      , TL (fromJsonImplClaim impl p) (fromJsonImplDef fun impl)
-      ]
+   in Right [ TL (fromJsonClaim fun p)
+                 (fromJsonDef nms o p.namePrim (err p) fun p.info)
+            , TL (fromJsonImplClaim impl p) (fromJsonImplDef fun impl)
+            ]
 
 ||| Generate declarations and implementations for
 ||| `FromJSON` for a given data type
 ||| using default settings.
 export %inline
-FromJSON : List Name -> ParamTypeInfo -> List TopLevel
+FromJSON : List Name -> ParamTypeInfo -> Res (List TopLevel)
 FromJSON = customFromJSON defaultOptions
-
-namespace Enum
-  export
-  customFromJSON : Options -> List Name -> Enum -> List TopLevel
-  customFromJSON o nms (Element t _) =
-    let ns   := freshNames "par" t.arty
-        impl := implName t "FromJSON"
-        fun  := funName t "fromJSON"
-        tpe  := generalFromJsonType (implicits ns) $ appArgs t.name ns
-        clm  := public' fun tpe
-     in [ TL clm (fromJsonDef [] o t.namePrim (err t) fun t)
-        , TL (implClaim impl (ifaceClaimType "FromJSON" t ns)) (fromJsonImplDef fun impl)
-        ]
-
-  export %inline
-  FromJSON : List Name -> Enum -> List TopLevel
-  FromJSON = customFromJSON defaultOptions
-
-namespace Record
-  export
-  customFromJSON : Options -> List Name -> ParamRecord -> List TopLevel
-  customFromJSON o nms (Element t _) = customFromJSON o nms t
-
-  export %inline
-  FromJSON : List Name -> ParamRecord -> List TopLevel
-  FromJSON = customFromJSON defaultOptions

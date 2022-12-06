@@ -11,6 +11,7 @@ depends    = base         >= 0.6.0
 modules = Derive.FromJSON
         , Derive.ToJSON
         , JSON
+        , JSON.Derive
         , JSON.FromJSON
         , JSON.Lexer
         , JSON.Option

@@ -1,10 +1,7 @@
 module Main
 
-import JSON
+import JSON.Derive
 import Hedgehog
-import Derive.Prelude
-import Derive.ToJSON
-import Derive.FromJSON
 
 %language ElabReflection
 
@@ -22,7 +19,7 @@ record Newtype where
 -- example newtype
 data Elem = H | He | B | C | N | O | F | Ne
 
-%runElab deriveEnum "Elem" [Show, Eq, Ord, ToJSON, FromJSON]
+%runElab derive "Elem" [Show, Eq, Ord, ToJSON, FromJSON]
 
 -- sum type with default encoding behavior: this will
 -- be encoded as a mapping from constructor argument names
@@ -109,7 +106,7 @@ data Weekday = Monday
              | Saturday
              | Sunday
 
-%runElab deriveEnum "Weekday" [Show,Eq,ToJSON,FromJSON]
+%runElab derive "Weekday" [Show,Eq,ToJSON,FromJSON]
 
 --------------------------------------------------------------------------------
 --          Generators

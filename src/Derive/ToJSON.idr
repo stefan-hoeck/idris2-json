@@ -2,8 +2,6 @@ module Derive.ToJSON
 
 import JSON.Option
 import JSON.ToJSON
-import public Derive.Enum
-import public Derive.Record
 import public Derive.Show
 
 %default total
@@ -47,12 +45,12 @@ parameters (nms : List Name) (o : Options)
 
   encValue : BoundArg 2 Regular -> TTImp
   encValue (BA (MkArg _  _ _ t) [x,_] _) =
-    assertIfRec nms t `(toJSON ~(var x))
+    assertIfRec nms t `(toJSON ~(varStr x))
 
   encField : BoundArg 2 RegularNamed -> TTImp
   encField (BA a [x,_]  _) =
     let nm := fieldNamePrim o (argName a)
-     in assertIfRec nms a.type `(~(nm) .= ~(var x))
+     in assertIfRec nms a.type `(~(nm) .= ~(varStr x))
 
   encArgs : (isRecord : Bool) -> (tag : TTImp) -> ArgInfo -> TTImp
   encArgs _    tag Const         = `(string  ~(tag))
@@ -98,42 +96,16 @@ parameters (nms : List Name) (o : Options)
 --------------------------------------------------------------------------------
 
 export
-customToJSON : Options -> List Name -> ParamTypeInfo -> List TopLevel
+customToJSON : Options -> List Name -> ParamTypeInfo -> Res (List TopLevel)
 customToJSON o nms p =
   let fun  := funName p "toJson"
       impl := implName p "ToJSON"
-   in [ TL (toJsonClaim fun p) (toJsonDef nms o fun p.info)
-      , TL (toJsonImplClaim impl p) (toJsonImplDef fun impl)
-      ]
+   in Right [ TL (toJsonClaim fun p) (toJsonDef nms o fun p.info)
+            , TL (toJsonImplClaim impl p) (toJsonImplDef fun impl)
+            ]
 
 ||| Generate declarations and implementations for `ToJSON` for a given data type
 ||| using default settings.
 export %inline
-ToJSON : List Name -> ParamTypeInfo -> List TopLevel
+ToJSON : List Name -> ParamTypeInfo -> Res (List TopLevel)
 ToJSON = customToJSON defaultOptions
-
-namespace Enum
-  export
-  customToJSON : Options -> List Name -> Enum -> List TopLevel
-  customToJSON o nms (Element t _) =
-    let ns   := freshNames "par" t.arty
-        impl := implName t "ToJSON"
-        fun  := funName t "toJSON"
-        tpe  := generalToJsonType (implicits ns) $ appArgs t.name ns
-        clm := public' fun tpe
-     in [ TL clm (toJsonDef [] o fun t)
-        , TL (implClaim impl (ifaceClaimType "ToJSON" t ns)) (toJsonImplDef fun impl)
-        ]
-
-  export %inline
-  ToJSON : List Name -> Enum -> List TopLevel
-  ToJSON = customToJSON defaultOptions
-
-namespace Record
-  export
-  customToJSON : Options -> List Name -> ParamRecord -> List TopLevel
-  customToJSON o nms (Element t _) = customToJSON o nms t
-
-  export %inline
-  ToJSON : List Name -> ParamRecord -> List TopLevel
-  ToJSON = customToJSON defaultOptions

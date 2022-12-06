@@ -49,7 +49,7 @@ data LexErr : Type where
   InvalidEsc       : LexErr
   InvalidChar      : LexErr
 
-%runElab deriveEnum "LexErr" [Show,Eq,Ord]
+%runElab derive "LexErr" [Show,Eq,Ord]
 
 --------------------------------------------------------------------------------
 --          Bounds
