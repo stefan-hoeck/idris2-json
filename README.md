@@ -12,14 +12,13 @@ terms of performance.
 Getting started with encoding and decoding is very easy:
 
 ```idris
-import JSON
-import Generics.Derive
+import JSON.Derive
 
 %language ElabReflection
 
 data MonsterClass = Imp | Goblin | Orc | Dragon
 
-%runElab derive "MonsterClass" [Generic,Meta,Show,Eq,EnumToJSON,EnumFromJSON]
+%runElab derive "MonsterClass" [Show,Eq,ToJSON,FromJSON]
 
 record Villain where
   constructor MkVillain
@@ -28,7 +27,7 @@ record Villain where
   class   : MonsterClass
   cronies : List Villain
 
-%runElab derive "Villain" [Generic,Meta,Show,Eq,RecordToJSON,RecordFromJSON]
+%runElab derive "Villain" [Show,Eq,ToJSON,FromJSON]
 
 gorgar : Villain
 gorgar = MkVillain "Gorgar" 2000 Dragon [MkVillain "Igor" 10 Imp []]
@@ -56,7 +55,7 @@ behave. Me wants this too! Here's what's still missing:
   - [x] Option for adjusting constructor names
   - [x] Option for converting all-nullary sum types
         directly to strings (instead of tagged objects)
-  - [ ] Option for automatically providing `null` when
+  - [x] Option for automatically providing `null` when
         decoding a missing object field
   - [x] Do not add constructor tag for single-constructor types
   - [x] Encode newtypes directly (without tags for constructor

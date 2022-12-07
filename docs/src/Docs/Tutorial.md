@@ -16,8 +16,7 @@ does). This tutorial is a literate Idris2 file, hence:
 ```idris
 module Docs.Tutorial
 
-import JSON
-import Generics.Derive
+import JSON.Derive
 import Data.String
 
 %language ElabReflection
@@ -46,13 +45,13 @@ to these) from a role playing game:
 ```idris
 data Race = Human | Halfling | Dwarf | Elf | HalfOrc
 
-%runElab derive "Race" [Generic,Meta,Show,Eq]
+%runElab derive "Race" [Show,Eq]
 
 ToJSON Race where toJSON = string . show
 
 data Class = Fighter | Thief | Wizard | Cleric
 
-%runElab derive "Class" [Generic,Meta,Show,Eq]
+%runElab derive "Class" [Show,Eq]
 
 ToJSON Class where toJSON = string . show
 
@@ -64,7 +63,7 @@ record Hero where
   class  : Class
   allies : List Hero
 
-%runElab derive "Hero" [Generic,Meta,Show,Eq]
+%runElab derive "Hero" [Show,Eq]
 
 ToJSON Hero where
   toJSON h = object [ "name"   .= h.name
@@ -85,7 +84,7 @@ these instances automatically:
 ```idris
 data MonsterClass = Imp | Goblin | Orc | Dragon
 
-%runElab derive "MonsterClass" [Generic,Meta,Show,Eq,EnumToJSON]
+%runElab derive "MonsterClass" [Show,Eq,ToJSON]
 
 record Villain where
   constructor MkVillain
@@ -94,17 +93,11 @@ record Villain where
   class   : MonsterClass
   cronies : List Villain
 
-%runElab derive "Villain" [Generic,Meta,Show,Eq,RecordToJSON]
+%runElab derive "Villain" [Show,Eq,ToJSON]
 
 gorgar : Villain
 gorgar = MkVillain "Gorgar" 2000 Dragon [MkVillain "Igor" 10 Imp []]
 ```
-
-The `RecordToJSON` encoder can be used for data types with only
-one constructor. In this case, the constructor name will not
-be part of the encoded string. Likewise, for enum types (all nullary
-constructors), we can opt for encoding just the constructors' names
-(`EnumToJSON`).
 
 Feel free to load this tutorial in a REPL session and give
 the encoders a try: `rlwrap idris2 --find-ipkg src/Doc/Tutorial.md`:
@@ -115,10 +108,10 @@ the encoders a try: `rlwrap idris2 --find-ipkg src/Doc/Tutorial.md`:
 
 ## Customizing Encoders
 
-There are quite a few options for customizing generic encoders.
-Not all of these are available via elaborator
-reflection, but it is quite easy to write your own elab decriptors
-for your customized versions (see below).
+Automatically derived encoders and decoders can be customized
+via the `JSON.Option` data type. For instance, we can encode
+an enum type by just taking the first three letters of its
+names:
 
 ### Newtypes
 Function `genNewtyeToJSON` encodes a newtype (one constructor, one field)
@@ -138,11 +131,16 @@ Examples:
 
 take : Nat -> String -> String
 take n = pack . take n . unpack
+
+toLower : Options
+toLower = {constructorTagModifier := toLower} defaultOptions
+
+take3 : Options
+take3 = {constructorTagModifier := take 3 . toUpper} defaultOptions
+
 data Gender = Female | Male | NonBinary
 
-%runElab derive "Gender" [Generic,Meta,Eq,Ord]
-
-ToJSON Gender where toJSON = genEnumToJSON
+%runElab derive "Gender" [Show,Eq,Ord,customToJSON toLower]
 
 data Weekday = Monday
              | Tuesday
@@ -152,35 +150,26 @@ data Weekday = Monday
              | Saturday
              | Sunday
 
-%runElab derive "Weekday" [Generic,Meta,Eq,Ord]
-
-ToJSON Weekday where
-  toJSON = genEnumToJSON' (take 3 . toLower)
+%runElab derive "Weekday" [Show,Eq,Ord,customToJSON take3]
 ```
 
-### Records
-With `records` we mean single-constructor data types here. If all
-arguments have a name, `genRecordToJSON` will encode these as
-a mapping from field name to encoded value, otherwise they will
-be encoded as n-ary sums (resulting in a heterogeneous array).
-If you need to adjust field names prior to encoding them,
-use `genRecordToJSON'` instead.
-As shown for the `Villain` data type, `ToJSON` implementations
-for records can be derived by using `RecordToJSON`.
+Likewise, we can adjust the generated field names for data constructors
+where all arguments have user-defined names.
 
 Examples:
 
 ```idris
+
+take4 : Options
+take4 = {fieldNameModifier := take 4} defaultOptions
+
 data Treasure : Type where
   MkTreasure :  (description : String)
              -> (weight : Nat)
              -> (value  : Nat)
              -> Treasure
 
-%runElab derive "Treasure" [Generic,Meta,Eq,Ord]
-
-ToJSON Treasure where
-  toJSON = genRecordToJSON
+%runElab derive "Treasure" [Show,Eq,Ord,customToJSON take4]
 
 record Spell where
   constructor MkSpell
@@ -188,59 +177,47 @@ record Spell where
   difficulty : Nat
   cost       : Nat
 
-%runElab derive "Spell" [Generic,Meta,Eq,Ord]
-
-ToJSON Spell where
-  toJSON = genRecordToJSON' reverse
+%runElab derive "Spell" [Show,Eq,Ord,customToJSON take4]
 ```
 
 ### Arbitrary Sums
 Sum types offer the greatest flexibility about how they
 can be encoded. There is a `SumEncoding` data type in `JSON.Option`,
 the doc strings of which explain in detail the different options we
-have. Use `genToJSON` together with one of these options to encode
-an arbitrary sum type. If constructor or field names need to
-be adjusted before encoding them, use `genToJSON'` instead.
-
-Note: So far, the only option to derive encoders for arbitrary
-sum types through elaborator reflection is `ToJSON`, which
-passes the `defaultTaggedField` option to `genToJSON` internally.
+have. Use `customToJSON` together with one of these options to encode
+an arbitrary sum type.
 
 Example:
 
 ```idris
+weaponOptions : Options
+weaponOptions = {sum := TwoElemArray} toLower
+
 data Weapon : Type where
   Sword : (name : String) -> (weight : Nat) -> (value : Nat) -> Weapon
   Club : (weight : Nat) -> Weapon
   Rock : (material : String) -> (weight : Nat) -> Weapon
 
-%runElab derive "Weapon" [Generic,Meta,Eq,Ord]
-
-ToJSON Weapon where
-  toJSON = genToJSON' id toLower TwoElemArray
+%runElab derive "Weapon" [Show,Eq,Ord,customToJSON weaponOptions]
 ```
 
 ### Writing your own Derivable Encoders
 
 If a certain pattern of customized encoders keeps coming up,
 it is very easy to write your own autoderivable version
-using `customToJSON`. All you need to do is define
-your own generic implementation function and pass that
-function's name in a quote to `customToJSON`.
+using `customToJSON:
 
 Example:
 
 ```idris
-myToJSON : Encoder v => Meta a code => POP ToJSON code => a -> v
-myToJSON = genToJSON' (take 3) toLower (TaggedObject "t" "c")
-
-MyToJSON : DeriveUtil -> InterfaceImpl
-MyToJSON = customToJSON `(myToJSON)
+MyToJSON : List Name -> ParamTypeInfo -> Res (List TopLevel)
+MyToJSON =
+  customToJSON (MkOptions (TaggedObject "t" "c") False toLower (take 3))
 
 data NPC : Type where
   Commoner : (name : String) -> (profession : String) -> NPC
   Noblewoman : (name : String) -> (status : String) -> NPC
   Demigod : (name : String) -> (attributes : List String) -> NPC
 
-%runElab derive "NPC" [Generic,Meta,Eq,Ord,MyToJSON]
+%runElab derive "NPC" [Show,Eq,Ord,MyToJSON]
 ```
