@@ -1,6 +1,6 @@
 module JSON.Option
 
-import Generics.Derive
+import Derive.Prelude
 
 %language ElabReflection
 
@@ -46,7 +46,7 @@ data SumEncoding : Type where
                         -> (contentsFieldName : String)
                         -> SumEncoding
 
-%runElab derive "SumEncoding" [Generic,Meta,Show,Eq]
+%runElab derive "SumEncoding" [Show,Eq]
 
 ||| Corresponds to `TaggedObject "tag" "contents"`
 public export
@@ -54,32 +54,72 @@ defaultTaggedObject : SumEncoding
 defaultTaggedObject = TaggedObject "tag" "contents"
 
 public export
-adjustConnames : (String -> String) -> TypeInfo' k kss -> TypeInfo' k kss
-adjustConnames f = { constructors $= mapNP adjCon }
-  where adjCon : ConInfo_ k ks -> ConInfo_ k ks
-        adjCon (MkConInfo ns n fs) = MkConInfo ns (f n) fs
+record Options where
+  constructor MkOptions
+  sum                        : SumEncoding
+  replaceMissingKeysWithNull : Bool
+  constructorTagModifier     : String -> String
+  fieldNameModifier          : String -> String
 
 public export
-adjustInfo :  (adjFields : String -> String)
-           -> (adjCons : String -> String)
-           -> TypeInfo' k kss
-           -> TypeInfo' k kss
-adjustInfo af ac = { constructors $= mapNP adjCon }
-  where adjArg : ArgName -> ArgName
-        adjArg (NamedArg ix n) = NamedArg ix $ af n
-        adjArg arg = arg
-
-        adjCon : ConInfo_ k ks -> ConInfo_ k ks
-        adjCon (MkConInfo ns n fs) = MkConInfo ns (ac n) (mapNP adjArg fs)
+defaultOptions : Options
+defaultOptions = MkOptions defaultTaggedObject False id id
 
 public export
-adjustFieldNames : (String -> String) -> TypeInfo' k kss -> TypeInfo' k kss
-adjustFieldNames f = adjustInfo f id
+fieldName : Named a => Options -> a -> String
+fieldName o v = o.fieldNameModifier v.nameStr
 
 public export
-nullaryInjections :  NP_ (List k) (ConInfo_ k) kss
-                  -> (0 et : EnumType kss)
-                  -> NP_ (List k) (K (NS_ (List k) (NP f) kss)) kss
-nullaryInjections []                       _  = []
-nullaryInjections (MkConInfo _ _ [] :: vs) es =
-  Z [] :: mapNP (\ns => S ns) (nullaryInjections vs (enumTail es))
+fieldNamePrim : Named a => Options -> a -> TTImp
+fieldNamePrim o v = primVal (Str $ fieldName o v)
+
+public export
+constructorTag : Named a => Options -> a -> String
+constructorTag o v = o.constructorTagModifier v.nameStr
+
+public export
+constructorTagPrim : Named a => Options -> a -> TTImp
+constructorTagPrim o v = primVal (Str $ constructorTag o v)
+
+--------------------------------------------------------------------------------
+--          Constructors
+--------------------------------------------------------------------------------
+
+public export
+data ArgInfo : Type where
+  Const  : ArgInfo
+  Fields : SnocList (BoundArg 2 RegularNamed) -> ArgInfo
+  Values : SnocList (BoundArg 2 Regular) -> ArgInfo
+
+public export
+record DCon where
+  constructor DC
+  name    : Name
+  bound   : TTImp
+  applied : TTImp
+  tag     : TTImp
+  args    : ArgInfo
+
+argInfo : SnocList (BoundArg 2 Regular) -> ArgInfo
+argInfo [<]  = Const
+argInfo sx   = maybe (Values sx) Fields $ traverse toNamed sx
+
+public export
+isConst : DCon -> Bool
+isConst (DC _ _ _ _ Const) = True
+isConst _                  = False
+
+public export
+toRegular : BoundArg n RegularNamed -> BoundArg n Regular
+toRegular (BA arg vars prf) = BA arg vars %search
+
+export
+dcon : Options -> Con n vs -> DCon
+dcon o c =
+  let xs  := freshNames "x" c.arty
+      ys  := freshNames "y" c.arty
+      bc  := bindCon c xs
+      ac  := `(Right ~(applyCon c $ map fromString xs))
+      sx  := boundArgs regular c.args [xs,ys]
+      tag := constructorTagPrim o c
+  in DC c.name bc ac tag $ argInfo sx

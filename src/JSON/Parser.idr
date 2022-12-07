@@ -2,7 +2,7 @@ module JSON.Parser
 
 import JSON.Lexer
 import Data.String
-import Generics.Derive
+import Derive.Prelude
 
 %default total
 
@@ -20,6 +20,8 @@ data JSON : Type where
   JString : String -> JSON
   JArray  : List JSON -> JSON
   JObject : List (String, JSON) -> JSON
+
+%runElab derive "JSON" [Eq]
 
 showValue : SnocList String -> JSON -> SnocList String
 
@@ -54,7 +56,7 @@ showObject ss (h :: t) =
   let ss' = showPair (ss :< ",") h in showObject ss' t
 
 showImpl : JSON -> String
-showImpl v = fastConcat $ showValue Lin v <>> Nil
+showImpl v = concat $ showValue Lin v <>> Nil
 
 export %inline
 Show JSON where
@@ -91,7 +93,7 @@ data ParseErr : Type where
   Unexpected       : Token  -> ParseErr
   EOI              : ParseErr
 
-%runElab derive "ParseErr" [Generic,Meta,Show,Eq]
+%runElab derive "ParseErr" [Show,Eq]
 
 value  :  List Token -> Either ParseErr (List Token, JSON)
 
