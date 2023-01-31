@@ -168,7 +168,7 @@ public export %tcinline
 ParseErr = Bounded (ParseError JSToken JSErr)
 
 strLit : SnocList Char -> JSToken
-strLit = Lit . JString . pack
+strLit = Lit . JString . cast
 
 str : SnocList Char -> AutoTok False Char JSToken
 str sc ('\\' :: c  :: xs) = case c of
@@ -214,7 +214,7 @@ term (x :: xs) = case x of
   'f' => case xs of
     'a' :: 'l' :: 's' :: 'e' :: t => Succ (Lit $ JBool False) t
     _                             => Fail
-  d   => suffix (Lit . JNumber . cast . pack) $
+  d   => suffix (Lit . JNumber . cast . cast {to = String}) $
          number {pre = [<]} (d :: xs) @{Same}
 
 term []        = Fail
