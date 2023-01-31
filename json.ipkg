@@ -5,7 +5,7 @@ brief      = "Derivable JSON marshallers for Idris2"
 version    = 0.5.0
 sourcedir  = "src"
 depends    = base         >= 0.6.0
-           , contrib
+           , parser
            , elab-util
 
 modules = Derive.FromJSON

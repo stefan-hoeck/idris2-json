@@ -87,7 +87,7 @@ interface Object obj v => Value v obj | v where
   typeOf : v -> String
 
   ||| Tries to convert a string to an intermediare value.
-  parse : String -> Either ParseErr v
+  parse : Origin -> String -> Either (ReadError JSToken JSErr) v
 
   ||| Tries to convert a value to an `Object`.
   getObject : v -> Maybe obj
@@ -132,7 +132,7 @@ Object (List (String,JSON)) JSON where
 
 export %inline
 Value JSON (List (String,JSON)) where
-  parse     = parseErr
+  parse     = parseJSON
 
   typeOf JNull        = "Null"
   typeOf (JBool _)    = "Boolean"

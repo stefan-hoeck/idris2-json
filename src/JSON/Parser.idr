@@ -1,12 +1,58 @@
 module JSON.Parser
 
-import JSON.Lexer
+import Data.List1
 import Data.String
+import public Text.Parse.Manual
 import Derive.Prelude
 
 %default total
 
 %language ElabReflection
+
+--------------------------------------------------------------------------------
+--          String Encoding
+--------------------------------------------------------------------------------
+
+hexChar : Integer -> Char
+hexChar 0 = '0'
+hexChar 1 = '1'
+hexChar 2 = '2'
+hexChar 3 = '3'
+hexChar 4 = '4'
+hexChar 5 = '5'
+hexChar 6 = '6'
+hexChar 7 = '7'
+hexChar 8 = '8'
+hexChar 9 = '9'
+hexChar 10 = 'a'
+hexChar 11 = 'b'
+hexChar 12 = 'c'
+hexChar 13 = 'd'
+hexChar 14 = 'e'
+hexChar _  = 'f'
+
+export
+encode : String -> String
+encode = go (Lin :< '"') . unpack
+  where go : SnocList Char -> List Char -> String
+        go sc []          = pack (sc <>> ['"'])
+        go sc ('"' :: t)  = go (sc :< '\\' :< '"') t
+        go sc ('\n' :: t) = go (sc :< '\\' :< 'n') t
+        go sc ('\f' :: t) = go (sc :< '\\' :< 'f') t
+        go sc ('\b' :: t) = go (sc :< '\\' :< 'b') t
+        go sc ('\r' :: t) = go (sc :< '\\' :< 'r') t
+        go sc ('\t' :: t) = go (sc :< '\\' :< 't') t
+        go sc ('\\' :: t) = go (sc :< '\\' :< '\\') t
+        go sc ('/'  :: t) = go (sc :< '\\' :< '/') t
+        go sc (c    :: t) =
+          let x := the Integer $ cast c
+           in if x >= 0x20
+                then go (sc :< c) t
+                else let d1 := hexChar $ x `div` 0x1000
+                         d2 := hexChar $ (x `mod` 0x1000) `div` 0x100
+                         d3 := hexChar $ (x `mod` 0x100)  `div` 0x10
+                         d4 := hexChar $ x `mod` 0x10
+                      in go (sc :< '\\' :< 'u' :< d1 :< d2 :< d3 :< d4) t
 
 --------------------------------------------------------------------------------
 --          JSON
@@ -82,121 +128,207 @@ depth (JObject xs)  =
   1 + assert_total (foldl (\n,p => max n $ depth (snd p)) 0 xs)
 
 --------------------------------------------------------------------------------
---          Parser
+--          Lexer
 --------------------------------------------------------------------------------
 
 public export
-data ParseErr : Type where
-  LErr             : Bounds -> LexErr -> ParseErr
-  UnmatchedBracket : Bounds -> ParseErr
-  UnmatchedBrace   : Bounds -> ParseErr
-  Unexpected       : Token  -> ParseErr
-  EOI              : ParseErr
+data JSToken : Type where
+  Symbol   : Char -> JSToken
+  Lit      : JSON -> JSToken
 
-%runElab derive "ParseErr" [Show,Eq]
+%runElab derive "JSToken" [Show,Eq]
 
-value  :  List Token -> Either ParseErr (List Token, JSON)
-
-array  :  Bounds -- opening bracket
-       -> SnocList JSON
-       -> List Token
-       -> Either ParseErr (List Token, JSON)
-
-object :  Bounds
-       -> SnocList (String, JSON)
-       -> List Token
-       -> Either ParseErr (List Token, JSON)
-
-value []        = Left EOI
-value (t :: ts) = case t of
-  TBracketO x  => array x Lin ts
-  TBraceO x    => object x Lin ts
-  TBool _ b    => Right (ts, JBool b)
-  TNull _      => Right (ts, JNull)
-  TNum _ d     => Right (ts, JNumber d)
-  TStr _ s     => Right (ts, JString s)
-  TErr x err   => Left (LErr x err)
-  _            => Left (Unexpected t)
-
-array b sv []                  = Left (UnmatchedBracket b)
-array b sv (TBracketC _ :: xs) = Right (xs, JArray $ sv <>> Nil)
-array b sv xs                  =
-  let Right (TComma _ :: xs2, v) := value xs
-        | Right (TBracketC _ :: xs2, v) => Right (xs2, JArray $ sv <>> [v])
-        | Right (x :: xs2, v)           => Left (Unexpected x)
-        | Right ([],_)                  => Left (UnmatchedBracket b)
-        | Left  EOI                     => Left (UnmatchedBracket b)
-        | Left  err                     => Left err
-   in array b (sv :< v) (assert_smaller xs xs2)
-
-object b sv []                           = Left (UnmatchedBrace b)
-object b sv (TBraceC _ :: xs)            = Right (xs, JObject $ sv <>> Nil)
-object b sv (TStr _ s :: TColon _ :: xs) =
-  let Right (TComma _ :: xs2, v) := value xs
-        | Right (TBraceC _ :: xs2, v) => Right (xs2, JObject $ sv <>> [(s,v)])
-        | Right (x :: xs2, v)         => Left (Unexpected x)
-        | Right ([],_)                => Left (UnmatchedBracket b)
-        | Left  EOI                   => Left (UnmatchedBracket b)
-        | Left  err                   => Left err
-   in object b (sv :< (s,v)) (assert_smaller xs xs2)
-object b sv (TStr _ s :: x :: xs)        = Left (Unexpected x)
-object b sv (TStr _ s :: [])             = Left (UnmatchedBracket b)
-object b sv (x :: xs)                    = Left (Unexpected x)
+%inline
+fromChar : Char -> JSToken
+fromChar = Symbol
 
 export
-parseErrLine : (line : Nat) -> String -> Either ParseErr JSON
-parseErrLine l s = case value (lexJSONLine l s) of
-  Right ([], v)     => Right v
-  Right (x :: _, v) => Left (Unexpected x)
-  Left err      => Left err
+Interpolation JSToken where
+  interpolate (Symbol c) = show c
+  interpolate (Lit x)  = "'\{show x}'"
 
-export %inline
-parseErr : String -> Either ParseErr JSON
-parseErr = parseErrLine 1
+public export
+data JSErr : Type where
+  ExpectedString  : JSErr
+  InvalidEscape   : JSErr
+  Unclosed        : Char -> JSErr
+  Unknown         : Char -> JSErr
+
+%runElab derive "JSErr" [Show,Eq]
 
 export
-parseMaybe : String -> Maybe JSON
-parseMaybe s = case value (lexJSON s) of
-  Right ([], v) => Just v
-  _             => Nothing
+Interpolation JSErr where
+  interpolate (Unclosed c)    = "Unclosed \{show c}"
+  interpolate (Unknown c)     = "Unknown token: \{show c}"
+  interpolate ExpectedString  = "Expected string literal"
+  interpolate InvalidEscape   = "Invalid escape sequence"
+
+public export %tcinline
+0 ParseErr : Type
+ParseErr = Bounded (ParseError JSToken JSErr)
+
+strLit : SnocList Char -> JSToken
+strLit = Lit . JString . pack
+
+str : SnocList Char -> AutoTok False Char JSToken
+str sc ('\\' :: c  :: xs) = case c of
+  '"'  => str (sc :< '"') xs
+  'n'  => str (sc :< '\n') xs
+  'f'  => str (sc :< '\f') xs
+  'b'  => str (sc :< '\b') xs
+  'r'  => str (sc :< '\r') xs
+  't'  => str (sc :< '\t') xs
+  '\\' => str (sc :< '\\') xs
+  '/'  => str (sc :< '/') xs
+  'u'  => case xs of
+    w :: x :: y :: z :: t' =>
+      if isHexDigit w && isHexDigit x && isHexDigit y && isHexDigit z
+        then
+          let c := cast $ hexDigit w * 0x1000 +
+                          hexDigit x * 0x100 +
+                          hexDigit y * 0x10 +
+                          hexDigit z
+           in str (sc :< c) t'
+        else Succ (strLit sc) ('\\'::'u'::w::x::y::z::t')
+    _    => Succ (strLit sc) ('\\'::'u'::xs)
+  _    => Succ (strLit sc) ('\\'::c::xs)
+str sc ('"'  :: xs) = Succ (strLit sc) xs
+str sc (c    :: xs) = str (sc :< c) xs
+str sc []           = Fail
+
+term : Tok True Char JSToken
+term (x :: xs) = case x of
+  ',' => Succ ',' xs
+  '"' => str [<] xs
+  ':' => Succ ':' xs
+  '[' => Succ '[' xs
+  ']' => Succ ']' xs
+  '{' => Succ '{' xs
+  '}' => Succ '}' xs
+  'n' => case xs of
+    'u' :: 'l' :: 'l' :: t => Succ (Lit JNull) t
+    _                      => Fail
+  't' => case xs of
+    'r' :: 'u' :: 'e' :: t => Succ (Lit $ JBool True) t
+    _                      => Fail
+  'f' => case xs of
+    'a' :: 'l' :: 's' :: 'e' :: t => Succ (Lit $ JBool False) t
+    _                             => Fail
+  d   => suffix (Lit . JNumber . cast . pack) $
+         number {pre = [<]} (d :: xs) @{Same}
+
+term []        = Fail
+
+toErr : (l,c : Nat) -> Char -> List Char -> Either ParseErr a
+toErr l c '"'  cs = custom (oneChar l c) (Unclosed '"')
+toErr l c '\\' ('u' :: t) =
+  custom (BS l c l (c + 2 + min 4 (length t))) InvalidEscape
+toErr l c '\\' (h :: t)   = custom (BS l c l (c + 2)) InvalidEscape
+toErr l c x   cs = custom (oneChar l c) (Unknown x)
+
+go :
+     SnocList (Bounded JSToken)
+ -> (l,c   : Nat)
+ -> (cs    : List Char)
+ -> (0 acc : SuffixAcc cs)
+ -> Either ParseErr (List (Bounded JSToken))
+go sx l c ('\n' :: xs) (SA rec) = go sx (l+1) 0 xs rec
+go sx l c (x :: xs)    (SA rec) =
+  if isSpace x
+     then go sx l (c+1) xs rec
+     else case term (x::xs) of
+       Succ t xs' @{prf} =>
+         let c2 := c + toNat prf
+             bt := bounded t l c l c2
+          in go (sx :< bt) l c2 xs' rec
+       Fail => toErr l c x xs
+go sx l c [] _ = Right (sx <>> [])
+
+export
+lexJSON : String -> Either ParseErr (List (Bounded JSToken))
+lexJSON s = go [<] 0 0 (unpack s) suffixAcc
 
 --------------------------------------------------------------------------------
---          Pretty Printed Errors
+--          Parser
 --------------------------------------------------------------------------------
 
-lexErr : LexErr -> String
-lexErr MissingQuote = "missing closing quote"
-lexErr InvalidLit   = "invalid literal"
-lexErr InvalidEsc   = "invalid escape sequence"
-lexErr InvalidChar  = "invalid character"
+0 Rule : Bool -> Type -> Type
+Rule b t =
+     (xs : List $ Bounded JSToken)
+  -> (0 acc : SuffixAcc xs)
+  -> Res b JSToken xs JSErr t
 
-tokName : Token -> String
-tokName (TBracketO x) = "opening bracket"
-tokName (TBracketC x) = "closing bracket"
-tokName (TBraceO x)   = "opening brace"
-tokName (TBraceC x)   = "closing brace"
-tokName (TComma x)    = "comma"
-tokName (TColon x)    = "colon"
-tokName (TNull x)     = "\"null\""
-tokName (TBool x b)   = "boolean literal"
-tokName (TNum x dbl)  = "double literal"
-tokName (TStr x str)  = "string literal"
-tokName (TErr x y)    = "error : \{lexErr y}"
+array : Bounds -> SnocList JSON -> Rule True JSON
 
-errLines : String -> Bounds -> String -> String
-errLines str bs tok = unlines $ tokenLines (lines str) bs tok
+object : Bounds -> SnocList (String,JSON) -> Rule True JSON
+
+value : Rule True JSON
+value (B (Lit y) _ :: xs)        _      = Succ y xs
+value (B '[' _ :: B ']' _ :: xs) _      = Succ (JArray []) xs
+value (B '[' b :: xs)            (SA r) = succ $ array b [<] xs r
+value (B '{' _ :: B '}' _ :: xs) _      = Succ (JObject []) xs
+value (B '{' b :: xs)            (SA r) = succ $ object b [<] xs r
+value (x :: xs) _                       = unexpected x
+value [] _                              = eoi
+
+array b sv xs sa@(SA r) = case value xs sa of
+  Succ v (B ',' _ :: ys) => succ $ array b (sv :< v) ys r
+  Succ v (B ']' _ :: ys) => Succ (JArray $ sv <>> [v]) ys
+  Succ v (y       :: ys) => unexpected y
+  Succ _ []              => custom b (Unclosed '[')
+  Fail (B EOI _)         => custom b (Unclosed '[')
+  Fail err               => Fail err
+
+object b sv (B (Lit $ JString l) _ :: B ':' _ :: xs) (SA r) =
+  case succ $ value xs r of
+    Succ v (B ',' _ :: ys) => succ $ object b (sv :< (l,v)) ys r
+    Succ v (B '}' _ :: ys) => Succ (JObject $ sv <>> [(l,v)]) ys
+    Succ v (y       :: ys) => unexpected y
+    Succ _ []              => custom b (Unclosed '}')
+    Fail (B EOI _)         => custom b (Unclosed '}')
+    Fail err               => Fail err
+object b sv (B (Lit $ JString _) _ :: x :: xs) _ = expected x.bounds ':'
+object b sv (x :: xs)                          _ = custom x.bounds ExpectedString
+object b sv []                                 _ = eoi
 
 export
-prettyErr : String -> ParseErr -> String
-prettyErr s (LErr x y)           = errLines s x $ lexErr y
-prettyErr s (UnmatchedBracket x) = errLines s x "unmatched bracket"
-prettyErr s (UnmatchedBrace x)   = errLines s x "unmatched brace"
-prettyErr s (Unexpected x)       = errLines s (bounds x) "unexpected \{tokName x}"
-prettyErr s EOI                  = "unexpected end of input"
+parseJSON : Origin -> String -> Either (ReadError JSToken JSErr) JSON
+parseJSON o str = case lexJSON str of
+  Right ts => case value ts suffixAcc of
+    Fail x         => Left (parseFailed o $ singleton x)
+    Succ v []      => Right v
+    Succ v (x::xs) => Left (parseFailed o $ singleton $ Unexpected <$> x)
+  Left err => Left (parseFailed o $ singleton err)
 
-||| Simple IO utility for testing the parser at the REPL
-export
-printParseJSON : String -> IO ()
-printParseJSON str = case parseErr str of
-  Left err => putStrLn (prettyErr str err)
-  Right v  => putStrLn "Success: \{show v}"
+-- --------------------------------------------------------------------------------
+-- --          Debugging
+-- --------------------------------------------------------------------------------
+--
+-- lineAt : List String -> Nat -> String
+-- lineAt []        _     = ""
+-- lineAt _         Z     = ""
+-- lineAt (x :: xs) (S Z) = x
+-- lineAt (_ :: xs) (S k) = lineAt xs k
+--
+-- export
+-- tokenLines : List String -> Bounds -> String -> List String
+-- tokenLines strs bs tok  =
+--    [  lineAt strs bs.line
+--    ,  replicate (minus bs.startCol 1) ' '
+--    ++ replicate (S $ minus bs.endCol bs.startCol) '^'
+--    ++ " \{tok}"
+--    ]
+--
+-- ||| Tokenizes a JSON string and pretty prints all the tokens
+-- ||| found, while displaying the line and position each token was found on.
+-- export
+-- debugLexJSON : String -> List String
+-- debugLexJSON str =
+--   let ls = lines str
+--       ts = lexJSON str
+--    in ts >>= \t => tokenLines ls (bounds t) (disp t)
+--
+-- ||| Pretty prints the tokens found in a JSON string to stdout
+-- export
+-- printLexJSON : String -> IO ()
+-- printLexJSON = traverse_ putStrLn . debugLexJSON
