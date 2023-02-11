@@ -9,3 +9,4 @@ depends    = base         >= 0.5.1
            , json
 
 modules = Docs.Tutorial
+        , README
