@@ -12,6 +12,8 @@ terms of performance.
 Getting started with encoding and decoding is very easy:
 
 ```idris
+module README
+
 import JSON.Derive
 
 %language ElabReflection
