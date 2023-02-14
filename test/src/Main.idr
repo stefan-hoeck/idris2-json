@@ -232,7 +232,7 @@ prop_double : Property
 prop_double = roundTrip doubleE100
 
 prop_either : Property
-prop_either = roundTrip $ either bits8All ascii
+prop_either = roundTrip $ either bits8All printableAscii
 
 prop_int : Property
 prop_int = roundTrip intAll
@@ -253,7 +253,7 @@ prop_nat : Property
 prop_nat = roundTrip nat128
 
 prop_pair : Property
-prop_pair = roundTrip [| (,) (list1_20 bool) (maybe ascii) |]
+prop_pair = roundTrip [| (,) (list1_20 bool) (maybe printableAscii) |]
 
 prop_rec : Property
 prop_rec = roundTrip rec
