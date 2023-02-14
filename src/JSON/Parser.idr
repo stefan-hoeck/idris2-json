@@ -189,7 +189,9 @@ str sc ('\\' :: c  :: xs) = case c of
     _    => invalidEscape p xs
   _    => invalidEscape p xs
 str sc ('"'  :: xs) = Succ (strLit sc) xs
-str sc (c    :: xs) = str (sc :< c) xs
+str sc (c    :: xs) =
+  if isControl c then range (InvalidControl c) p xs
+  else str (sc :< c) xs
 str sc []           = failEOI p
 
 term : Tok Char JSToken

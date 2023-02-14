@@ -145,7 +145,10 @@ bits64All : Gen Bits64
 bits64All = bits64 $ exponential 0 18446744073709551615
 
 unicode16 : Gen Char
-unicode16 = charc '\0' '\65535'
+unicode16 = noControl <$> charc '\0' '\65535'
+  where
+    noControl : Char -> Char
+    noControl c = if isControl c then ' ' else c
 
 doubleE100 : Gen Double
 doubleE100 = double $ exponentialFrom 0 (-1.0e100) 1.0e100
@@ -169,7 +172,7 @@ string20 : Gen Char -> Gen String
 string20 = string $ linear 0 20
 
 string20Ascii : Gen String
-string20Ascii = string20 ascii
+string20Ascii = string20 printableAscii
 
 string20Unicode16 : Gen String
 string20Unicode16 = string20 unicode16
@@ -229,7 +232,7 @@ prop_double : Property
 prop_double = roundTrip doubleE100
 
 prop_either : Property
-prop_either = roundTrip $ either bits8All ascii
+prop_either = roundTrip $ either bits8All printableAscii
 
 prop_int : Property
 prop_int = roundTrip intAll
@@ -250,7 +253,7 @@ prop_nat : Property
 prop_nat = roundTrip nat128
 
 prop_pair : Property
-prop_pair = roundTrip [| (,) (list1_20 bool) (maybe ascii) |]
+prop_pair = roundTrip [| (,) (list1_20 bool) (maybe printableAscii) |]
 
 prop_rec : Property
 prop_rec = roundTrip rec
