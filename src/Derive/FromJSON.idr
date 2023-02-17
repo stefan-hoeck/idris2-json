@@ -103,8 +103,8 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
   consts : List DCon -> TTImp
   consts ds =
     let catch := `(s) .= `(fail $ ~(err) ++ show s)
-        cse   :=  lambdaArg {a = Name} "x"
-              .=> iCase `(x) implicitFalse (map constClause ds ++ [catch])
+        cse   :=  lam (lambdaArg {a = Name} "x") $
+                  iCase `(x) implicitFalse (map constClause ds ++ [catch])
      in `(withString ~(tpeName) ~(cse))
 
   withArgs : DCon -> List DCon -> TTImp
@@ -130,7 +130,7 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
           pairCases =
             let clauses := map clause (d :: ds)
                 catch   := `(MkPair s _) .= `(fail $ ~(err) ++ show s)
-             in lambdaArg {a = Name} "x" .=>
+             in lam (lambdaArg {a = Name} "x") $
                 iCase `(x) implicitFalse (clauses ++ [catch])
 
           untagged : TTImp
