@@ -29,7 +29,7 @@ ipkg   = "sop.ipkg"
 [custom.all.pretty-show]
 type   = "git"
 url    = "https://github.com/stefan-hoeck/idris2-pretty-show"
-commit = "latest:result"
+commit = "latest:main"
 ipkg   = "pretty-show.ipkg"
 
 [custom.all.hedgehog]
@@ -47,5 +47,5 @@ ipkg   = "elab-pretty.ipkg"
 [custom.all.parser]
 type   = "git"
 url    = "https://github.com/stefan-hoeck/idris2-parser"
-commit = "latest:result"
+commit = "latest:main"
 ipkg   = "parser.ipkg"
