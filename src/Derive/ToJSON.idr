@@ -3,6 +3,7 @@ module Derive.ToJSON
 import JSON.Option
 import JSON.ToJSON
 import public Derive.Show
+import Language.Reflection.Util
 
 %default total
 
@@ -39,7 +40,7 @@ toJsonImplClaim impl p = implClaim impl (implType "ToJSON" p)
 ||| Top-level definition of the `ToJSON` implementation for the given data type.
 export
 toJsonImplDef : (fun, impl : Name) -> Decl
-toJsonImplDef f i = def i [var i .= var "MkToJSON" .$ var f]
+toJsonImplDef f i = def i [patClause (var i) (var "MkToJSON" `app` var f)]
 
 parameters (nms : List Name) (o : Options)
 
@@ -50,7 +51,7 @@ parameters (nms : List Name) (o : Options)
   encField : BoundArg 2 RegularNamed -> TTImp
   encField (BA a [x,_]  _) =
     let nm := fieldNamePrim o (argName a)
-     in assertIfRec nms a.type `(~(nm) .= ~(varStr x))
+     in assertIfRec nms a.type `(jpair ~(nm) ~(varStr x))
 
   encArgs : (isRecord : Bool) -> (tag : TTImp) -> ArgInfo -> TTImp
   encArgs _    tag Const         = `(string  ~(tag))
@@ -73,10 +74,10 @@ parameters (nms : List Name) (o : Options)
              in `(taggedObject ~(tf) ~(cf) ~(tag) ~(flds))
 
   sumClause : (fun : Name) -> DCon -> Clause
-  sumClause fun c = var fun .$ c.bound .= encSum c
+  sumClause fun c = patClause (var fun `app` c.bound) (encSum c)
 
   recClause : (fun : Name) -> DCon -> Clause
-  recClause fun c = var fun .$ c.bound .= encArgs True c.tag c.args
+  recClause fun c = patClause (var fun `app` c.bound) (encArgs True c.tag c.args)
 
   export
   toJsonClauses : (fun : Name) -> TypeInfo -> List Clause
