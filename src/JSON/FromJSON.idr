@@ -188,11 +188,16 @@ export %inline
 prependContext : String -> Result a -> Result a
 prependContext name = prependFailure "parsing \{name} failed, "
 
-infixr 3 <?>, .:, .:?, .:!
-
 export %inline
+prependPath : Result a -> JSONPathElement -> Result a
+prependPath r elem = mapFst (\(path,s) => (elem :: path,s)) r
+
+infixr 9 <?>, .:, .:?, .:!
+
+||| Deprecated: Use `prependPath` instead.
+export %inline %deprecate
 (<?>) : Result a -> JSONPathElement -> Result a
-r <?> elem = mapFst (\(path,s) => (elem :: path,s)) r
+(<?>) = prependPath
 
 withValue :  Value v obj
           => (type : String)
@@ -282,32 +287,33 @@ withArrayN :
   -> Parser v a
 withArrayN n = withValue "Array of length \{show n}" (getArrayN n)
 
-||| See `.:`
+||| See `field`
 export
 explicitParseField : Object obj v => Value v obj =>
                      Parser v a -> obj -> Parser String a
 explicitParseField p o key =
   case lookup key o of
        Nothing => fail "key \{show key} not found"
-       Just v  => p v <?> Key key
+       Just v  => p v `prependPath` Key key
 
-||| See `.:?`
+||| See `fieldMaybe`
 export
 explicitParseFieldMaybe : Object obj v => Value v obj =>
                           Parser v a -> obj -> Parser String (Maybe a)
 explicitParseFieldMaybe p o key =
   case lookup key o of
        Nothing => Right Nothing
-       Just v  => if isNull v then Right Nothing else Just <$> p v <?> Key key
+       Just v  =>
+         if isNull v then Right Nothing else map Just $ p v `prependPath` Key key
 
-||| See `.:!`
+||| See `optField`
 export
 explicitParseFieldMaybe' : Encoder v => Object obj v => Value v obj =>
                            Parser v a -> obj -> Parser String a
 explicitParseFieldMaybe' p o key =
   case lookup key o of
-       Nothing   => p null <?> Key key
-       Just v    => p v <?> Key key
+       Nothing   => p null `prependPath` Key key
+       Just v    => p v `prependPath` Key key
 
 ||| Retrieve the value associated with the given key of an `IObject`.
 ||| The result is `empty` if the key is not present or the value cannot
@@ -315,10 +321,15 @@ explicitParseFieldMaybe' p o key =
 |||
 ||| This accessor is appropriate if the key and value /must/ be present
 ||| in an object for it to be valid.  If the key and value are
-||| optional, use `.:?` instead.
-export
+||| optional, use `optField` instead.
+export %inline
+field : Object obj v => Value v obj => FromJSON a => obj -> Parser String a
+field = explicitParseField fromJSON
+
+||| Deprecated: Use `field` instead
+export %deprecate %inline
 (.:) : Object obj v => Value v obj => FromJSON a => obj -> Parser String a
-(.:) = explicitParseField fromJSON
+(.:) = field
 
 ||| Retrieve the value associated with the given key of an `IObject`. The
 ||| result is `Nothing` if the key is not present or if its value is `Null`,
@@ -326,38 +337,55 @@ export
 |||
 ||| This accessor is most useful if the key and value can be absent
 ||| from an object without affecting its validity.  If the key and
-||| value are mandatory, use `.:` instead.
-export
+||| value are mandatory, use `field` instead.
+export %inline
+fieldMaybe : Object obj v => Value v obj => FromJSON a =>
+        obj -> Parser String (Maybe a)
+fieldMaybe = explicitParseFieldMaybe fromJSON
+
+||| Deprecated: Use `fieldMaybe` instead
+export %deprecate %inline
 (.:?) : Object obj v => Value v obj => FromJSON a =>
         obj -> Parser String (Maybe a)
-(.:?) = explicitParseFieldMaybe fromJSON
+(.:?) = fieldMaybe
 
 ||| Retrieve the value associated with the given key of an `IObject`
 ||| passing on `Null` in case the given key is missing.
 |||
-||| This differs from `(.:?)` in that it can be used with any converter
+||| This differs from `fieldMaybe` in that it can be used with any converter
 ||| accepting `Null` as an input.
-export
+export %inline
+optField : Encoder v => Object obj v => Value v obj => FromJSON a => obj -> Parser String a
+optField = explicitParseFieldMaybe' fromJSON
+
+||| Deprecated: Use `optField` instead
+export %deprecate %inline
 (.:!) : Encoder v => Object obj v => Value v obj => FromJSON a => obj -> Parser String a
-(.:!) = explicitParseFieldMaybe' fromJSON
+(.:!) = optField
 
 ||| Function variant of `.:`.
-export
+|||
+||| Deprecated: Use `field` instead
+export %deprecate %inline
 parseField : Object obj v => Value v obj => FromJSON a =>
              obj -> Parser String a
-parseField = (.:)
+parseField = field
 
 ||| Function variant of `.:?`.
-export
+|||
+||| Deprecated: Use `fieldMaybe` instead
+export %deprecate %inline
 parseFieldMaybe : Object obj v => Value v obj => FromJSON a =>
                   obj -> Parser String (Maybe a)
-parseFieldMaybe = (.:?)
+parseFieldMaybe = fieldMaybe
 
 ||| Function variant of `.:!`.
-export
+|||
+||| Deprecated: Use `optField` instead
+export %deprecate
 parseFieldMaybe' : Encoder v => Object obj v => Value v obj => FromJSON a =>
                    obj -> Parser String a
-parseFieldMaybe' = (.:!)
+parseFieldMaybe' = optField
 
 --------------------------------------------------------------------------------
 --          Implementations
@@ -462,7 +490,8 @@ export
 export
 FromJSON a => FromJSON b => FromJSON (Either a b) where
   fromJSON = withObject "Either" $ \o =>
-               map Left (o .: "Left") `orElse` map Right (o .: "Right")
+               map Left (field o "Left") `orElse`
+               map Right (field o "Right")
 
 export
 FromJSON a => FromJSON b => FromJSON (a, b) where
@@ -514,6 +543,6 @@ fromTaggedObject :
   -> Parser (String,v) a
   -> Parser v a
 fromTaggedObject n tf cf f = withObject n $ \o => do
-  s <- parseField o tf
+  s <- field o tf
   v <- explicitParseField pure o cf
   f (s,v)

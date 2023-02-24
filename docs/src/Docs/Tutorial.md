@@ -66,17 +66,17 @@ record Hero where
 %runElab derive "Hero" [Show,Eq]
 
 ToJSON Hero where
-  toJSON h = object [ "name"   .= h.name
-                    , "age"    .= h.age
-                    , "race"   .= h.race
-                    , "class"  .= h.class
-                    , "allies" .= h.allies
+  toJSON h = object [ jpair "name"   h.name
+                    , jpair "age"    h.age
+                    , jpair "race"   h.race
+                    , jpair "class"  h.class
+                    , jpair "allies" h.allies
                     ]
 ```
 
 So, that was very easy. For encoding, we use the functions
-from the `JSON.Value.Encoder` interface together with operator
-`.=` (same as in aeson), for encoding key-value pairs.
+from the `JSON.Value.Encoder` interface together with
+`jpair`, for encoding key-value pairs.
 Most of the time, this is so straight forward that we can derive
 these instances automatically:
 

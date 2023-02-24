@@ -3,6 +3,7 @@ module Derive.FromJSON
 import JSON.Option
 import JSON.FromJSON
 import public Derive.Show
+import Language.Reflection.Util
 
 %default total
 
@@ -61,7 +62,7 @@ matchArray (sx :< BA _ [_,y] _) s =
   matchArray sx `(~(bindVar y) :: ~(s))
 
 constClause : DCon -> Clause
-constClause c = c.tag .= c.applied
+constClause c = patClause c.tag c.applied
 
 matchEither : (pat,res : TTImp) -> String -> TTImp
 matchEither pat res x =
@@ -72,7 +73,7 @@ matchEither pat res x =
 ||| Top-level definition of the `FromJSON` implementation for the given data type.
 export
 fromJsonImplDef : (fun,impl : Name) -> Decl
-fromJsonImplDef f i = def i [var i .= var "MkFromJSON" .$ var f]
+fromJsonImplDef f i = def i [patClause (var i) (var "MkFromJSON" `app` var f)]
 
 parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
 
@@ -80,8 +81,8 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
   dec n =
     let fnm := fieldNamePrim o n
      in case o.replaceMissingKeysWithNull of
-          True  => `(~(vobj) .:! ~(fnm))
-          False => `(~(vobj) .: ~(fnm))
+          True  => `(optField ~(vobj) ~(fnm))
+          False => `(field ~(vobj) ~(fnm))
 
   decFields : SnocList (BoundArg 2 RegularNamed) -> (res : TTImp) -> TTImp
   decFields [<] res = `(withObject ~(tpeName) $ \ ~(bobj) => ~(res))
@@ -102,7 +103,7 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
 
   consts : List DCon -> TTImp
   consts ds =
-    let catch := `(s) .= `(fail $ ~(err) ++ show s)
+    let catch := patClause `(s) `(fail $ ~(err) ++ show s)
         cse   :=  lam (lambdaArg {a = Name} "x") $
                   iCase `(x) implicitFalse (map constClause ds ++ [catch])
      in `(withString ~(tpeName) ~(cse))
@@ -124,12 +125,12 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
             Values sx => decValues sx  c.applied
 
           clause : DCon -> Clause
-          clause c = `(MkPair ~(c.tag) ~(bval)) .= `(~(rhs c) ~(vval))
+          clause c = patClause `(MkPair ~(c.tag) ~(bval)) `(~(rhs c) ~(vval))
 
           pairCases : TTImp
           pairCases =
             let clauses := map clause (d :: ds)
-                catch   := `(MkPair s _) .= `(fail $ ~(err) ++ show s)
+                catch   := patClause `(MkPair s _) `(fail $ ~(err) ++ show s)
              in lam (lambdaArg {a = Name} "x") $
                 iCase `(x) implicitFalse (clauses ++ [catch])
 
@@ -154,10 +155,10 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
   export
   fromJsonClause : (fun : Name) -> TypeInfo -> Clause
   fromJsonClause fun x = case map (dcon o) x.cons of
-    [c] => var fun .= decRecord c
+    [c] => patClause (var fun) (decRecord c)
     cs  =>
       let (consts,withArgs) := partition isConst cs
-       in  var fun .= decSum consts withArgs
+       in  patClause (var fun) (decSum consts withArgs)
 
   export
   fromJsonDef : Name -> TypeInfo -> Decl

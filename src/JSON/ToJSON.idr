@@ -20,11 +20,16 @@ interface ToJSON a where
   constructor MkToJSON
   toJSON : forall v . Encoder v => a -> v
 
+export %inline
+jpair : ToJSON a => Encoder v => String -> a -> (String,v)
+jpair s val = (s, toJSON val)
+
 infixr 8 .=
 
-export
+||| Deprecated: Use `jpair` instead
+export %deprecate %inline
 (.=) : ToJSON a => Encoder v => String -> a -> (String,v)
-s .= val = (s, toJSON val)
+(.=) = jpair
 
 export
 encodeVia : (0 v : Type) -> Encoder v => ToJSON a => a -> String
@@ -139,8 +144,8 @@ ToJSON () where
 
 export
 ToJSON a => ToJSON b => ToJSON (Either a b) where
-  toJSON (Left a)  = object ["Left"  .= a]
-  toJSON (Right b) = object ["Right" .= b]
+  toJSON (Left a)  = object [jpair "Left"  a]
+  toJSON (Right b) = object [jpair "Right" b]
 
 export
 ToJSON a => ToJSON b => ToJSON (a, b) where
