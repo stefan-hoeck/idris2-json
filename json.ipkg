@@ -7,13 +7,13 @@ sourcedir  = "src"
 depends    = base         >= 0.6.0
            , parser
            , elab-util
+           , parser-json
 
 modules = Derive.FromJSON
         , Derive.ToJSON
         , JSON
         , JSON.Derive
+        , JSON.Encoder
         , JSON.FromJSON
         , JSON.Option
-        , JSON.Parser
         , JSON.ToJSON
-        , JSON.Value

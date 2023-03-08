@@ -12,8 +12,7 @@ import Data.List1
 import Data.String
 import Data.Vect
 import JSON.Option
-import JSON.Parser
-import JSON.Value
+import JSON.Encoder
 
 public export
 interface ToJSON a where
