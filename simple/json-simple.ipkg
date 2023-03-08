@@ -1,0 +1,17 @@
+package json-simple
+
+authors    = "stefan-hoeck"
+brief      = "Simplified derivable JSON marshallers for simple people like me"
+version    = 0.5.0
+sourcedir  = "src"
+depends    = base         >= 0.6.0
+           , elab-util
+           , parser-json
+
+modules = Derive.FromJSON.Simple
+        , Derive.ToJSON.Simple
+        , JSON.Simple
+        , JSON.Simple.Derive
+        , JSON.Simple.FromJSON
+        , JSON.Simple.Option
+        , JSON.Simple.ToJSON
