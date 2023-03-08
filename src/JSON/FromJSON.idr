@@ -11,8 +11,7 @@ module JSON.FromJSON
 import Derive.Prelude
 import JSON.ToJSON
 import JSON.Option
-import JSON.Parser
-import JSON.Value
+import JSON.Encoder
 
 %language ElabReflection
 
