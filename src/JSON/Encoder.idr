@@ -8,11 +8,7 @@ module JSON.Encoder
 
 import Data.List
 import Data.Vect
-import public Text.FC
-import public Text.ParseError
-import public JSON.Lexer
 import public JSON.Parser
-import public JSON.Value
 
 ||| In Javascript, numbers are represented as IEEE 64bit
 ||| floating point numbers. Integers can be represented exactly
