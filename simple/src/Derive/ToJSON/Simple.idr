@@ -54,11 +54,11 @@ parameters (nms : List Name) (o : Options)
      in assertIfRec nms a.type `(jpair ~(nm) ~(varStr x))
 
   encArgs : (isRecord : Bool) -> (tag : TTImp) -> ArgInfo -> TTImp
-  encArgs _    tag Const         = `(string  ~(tag))
+  encArgs _    tag Const         = `(JString  ~(tag))
   encArgs True _   (Fields [<v]) = encValue $ toRegular v
   encArgs True _   (Values [<v]) = encValue v
-  encArgs _    _   (Fields sx)   = `(object ~(listOf $ map encField sx))
-  encArgs _    _   (Values sx)   = `(array ~(listOf $ map encValue sx))
+  encArgs _    _   (Fields sx)   = `(JObject ~(listOf $ map encField sx))
+  encArgs _    _   (Values sx)   = `(JArray ~(listOf $ map encValue sx))
 
   encSum : DCon -> TTImp
   encSum (DC n b _ tag Const) = encArgs False tag Const
@@ -110,4 +110,3 @@ customToJSON o nms p =
 export %inline
 ToJSON : List Name -> ParamTypeInfo -> Res (List TopLevel)
 ToJSON = customToJSON defaultOptions
-

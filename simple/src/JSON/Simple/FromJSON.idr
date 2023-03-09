@@ -9,11 +9,9 @@
 module JSON.Simple.FromJSON
 
 import Derive.Prelude
-import JSON.Lexer
 import JSON.Parser
 import JSON.Simple.Option
 import JSON.Simple.ToJSON
-import JSON.Value
 import Text.FC
 import Text.ParseError
 
