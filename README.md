@@ -52,7 +52,7 @@ In aeson it is possible to adjust via an `Option` data type,
 how generically derived implementations of `ToJSON` and `FromJSON`
 behave. Me wants this too! Here's what's still missing:
 
-- [ ] Configure generic encoders and decoders
+- [x] Configure generic encoders and decoders
   - [x] Option for adjusting field names
   - [x] Option for adjusting constructor names
   - [x] Option for converting all-nullary sum types
@@ -97,3 +97,11 @@ a package manager like [pack](https://github.com/stefan-hoeck/idris2-pack)
 to install and maintain matching versions of the Idris compiler
 and this library. Pack will also automatically install all
 required dependencies.
+
+## The json-simple sub-project
+
+Personally, I don't think the versatility of using different JSON
+representations and thus having to go via `Encoder`, `Value`, or `Object`
+interfaces is worth the hassle. I therefore added a second library,
+which uses just the JSON representation from the
+[parser-json](https://github.com/stefan-hoeck/idris2-parser) package.
