@@ -33,3 +33,7 @@ jobs:
         run: pack install json-docs
       - name: Run test
         run: pack run json-test -n 1000
+      - name: Build json-simple
+        run: pack install json-simple
+      - name: Test json-simple
+        run: pack test json-simple -n 1000
