@@ -56,14 +56,28 @@ defaultTaggedObject = TaggedObject "tag" "contents"
 public export
 record Options where
   constructor MkOptions
+  ||| How to encode sum types
   sum                        : SumEncoding
+
+  ||| If `True`, missing keys in a JSON objects will be
+  ||| replaced with `Null` during decoding.
   replaceMissingKeysWithNull : Bool
+
+  ||| If `True`, single constructor data types will be
+  ||| encoded without a tag for the constructor name.
+  unwrapRecords              : Bool
+
+  ||| This function is used to adjust constructor names
+  ||| during encoding and decoding
   constructorTagModifier     : String -> String
+
+  ||| This function is used to adjust constructor argument names
+  ||| during encoding and decoding
   fieldNameModifier          : String -> String
 
 public export
 defaultOptions : Options
-defaultOptions = MkOptions defaultTaggedObject False id id
+defaultOptions = MkOptions defaultTaggedObject False True id id
 
 public export
 fieldName : Named a => Options -> a -> String
