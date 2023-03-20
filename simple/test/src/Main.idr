@@ -145,10 +145,23 @@ bits64All : Gen Bits64
 bits64All = bits64 $ exponential 0 18446744073709551615
 
 unicode16 : Gen Char
-unicode16 = noControl <$> charc '\0' '\65535'
+unicode16 = noSpecial <$> charc '\0' '\65535'
   where
     noControl : Char -> Char
     noControl c = if isControl c then ' ' else c
+
+    noHighSurrogate : Char -> Char
+    noHighSurrogate c =
+      let idx = ord c
+      in if idx >= 0xD800 && idx <= 0xDBFF then ' ' else c
+
+    noLowSurrogate : Char -> Char
+    noLowSurrogate c =
+      let idx = ord c
+      in if idx >= 0xDC00 && idx <= 0xDFFF then ' ' else c
+
+    noSpecial : Char -> Char
+    noSpecial = noControl . noHighSurrogate . noLowSurrogate
 
 doubleE100 : Gen Double
 doubleE100 = double $ exponentialFrom 0 (-1.0e100) 1.0e100
