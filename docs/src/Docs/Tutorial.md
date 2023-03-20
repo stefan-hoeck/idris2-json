@@ -212,7 +212,7 @@ Example:
 ```idris
 MyToJSON : List Name -> ParamTypeInfo -> Res (List TopLevel)
 MyToJSON =
-  customToJSON (MkOptions (TaggedObject "t" "c") False toLower (take 3))
+  customToJSON (MkOptions (TaggedObject "t" "c") False True toLower (take 3))
 
 data NPC : Type where
   Commoner : (name : String) -> (profession : String) -> NPC

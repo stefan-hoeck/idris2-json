@@ -155,7 +155,9 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
   export
   fromJsonClause : (fun : Name) -> TypeInfo -> Clause
   fromJsonClause fun x = case map (dcon o) x.cons of
-    [c] => patClause (var fun) (decRecord c)
+    [c] => if o.unwrapRecords then patClause (var fun) (decRecord c)
+           else if isConst c then patClause (var fun) (decSum [c] [])
+           else patClause (var fun) (decSum [] [c])
     cs  =>
       let (consts,withArgs) := partition isConst cs
        in  patClause (var fun) (decSum consts withArgs)

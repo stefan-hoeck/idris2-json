@@ -42,7 +42,7 @@ data Sum2 : (a : Type) -> Type where
   Con23 : (foo : Maybe a) -> (bar : Either Bool a) -> Sum2 a
 
 opts2 : Options
-opts2 = MkOptions UntaggedValue False id id
+opts2 = MkOptions UntaggedValue False True id id
 
 %runElab derive "Sum2" [Show,Eq,customToJSON opts2, customFromJSON opts2]
 
@@ -56,7 +56,7 @@ data Sum3 : (a : Type) -> Type where
   Con33 : Maybe a -> Either Bool a -> Sum3 a
 
 opts3 : Options
-opts3 = MkOptions ObjectWithSingleField False id id
+opts3 = MkOptions ObjectWithSingleField False True id id
 
 %runElab derive "Sum3" [Show,Eq,customToJSON opts3, customFromJSON opts3]
 
@@ -69,7 +69,7 @@ data Sum4 : (a : Type) -> Type where
   Con43 : Maybe a -> Either Bool a -> Sum4 a
 
 opts4 : Options
-opts4 = MkOptions TwoElemArray False id id
+opts4 = MkOptions TwoElemArray False True id id
 
 %runElab derive "Sum4" [Show,Eq,customToJSON opts4, customFromJSON opts4]
 
@@ -81,7 +81,7 @@ data Sum5 : (a : Type) -> Type where
   Con53 : Maybe a -> Either Bool a -> Sum5 a
 
 opts5 : Options
-opts5 = MkOptions (TaggedObject "v" "c") False id id
+opts5 = MkOptions (TaggedObject "v" "c") False True id id
 
 %runElab derive "Sum5" [Show,Eq,customToJSON opts5, customFromJSON opts5]
 
@@ -95,6 +95,18 @@ record ARecord where
   foo     : Either String Bool
 
 %runElab derive "ARecord" [Show,Eq,ToJSON,FromJSON]
+
+-- unless we decide to not unwrap record types
+record AnotherRecord where
+  constructor MkARec
+  anInt   : Integer
+  perhaps : Maybe (Sum Nat)
+  foo     : Either String Bool
+
+opts6 : Options
+opts6 = MkOptions (TaggedObject "v" "c") False False id id
+
+%runElab derive "AnotherRecord" [Show,Eq,customToJSON opts6, customFromJSON opts6]
 
 -- enum types (all nullary constructors) can be encoded just
 -- as a string representing the constructor's name
@@ -206,6 +218,9 @@ sum g = choice
 rec : Gen ARecord
 rec = [| MkRec integer128 (maybe $ sum nat128) (either string20Unicode16 bool) |]
 
+anotherRec : Gen AnotherRecord
+anotherRec = [| MkARec integer128 (maybe $ sum nat128) (either string20Unicode16 bool) |]
+
 weekday : Gen Weekday
 weekday = element [Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday]
 
@@ -271,6 +286,14 @@ prop_pair = roundTrip [| (,) (list1_20 bool) (maybe printableAscii) |]
 prop_rec : Property
 prop_rec = roundTrip rec
 
+prop_anotherRec : Property
+prop_anotherRec = roundTrip anotherRec
+
+prop_anotherRecEnc : Property
+prop_anotherRecEnc = property1 $
+  encode (MkARec 12 Nothing (Right False)) ===
+  #"{"v":"MkARec","c":{"anInt":12.0,"perhaps":null,"foo":{"Right":false}}}"#
+
 prop_newtype : Property
 prop_newtype = roundTrip newtype
 
@@ -317,6 +340,8 @@ main = test . pure $ MkGroup "JSON" [
           , ("prop_newtype", prop_newtype)
           , ("prop_pair", prop_pair)
           , ("prop_rec", prop_rec)
+          , ("prop_anotherRec", prop_anotherRec)
+          , ("prop_anotherRecEnc", prop_anotherRecEnc)
           , ("prop_string", prop_string)
           , ("prop_sum", prop_sum)
           , ("prop_sum2", prop_sum2)

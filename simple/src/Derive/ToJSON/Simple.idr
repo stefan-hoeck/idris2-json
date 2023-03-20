@@ -83,7 +83,8 @@ parameters (nms : List Name) (o : Options)
   toJsonClauses : (fun : Name) -> TypeInfo -> List Clause
   toJsonClauses fun ti = case ti.cons of
     -- single constructor
-    [x] => [recClause fun $ dcon o x]
+    [x] => if o.unwrapRecords then [recClause fun $ dcon o x]
+           else [sumClause fun (dcon o x)]
 
     -- multi-constructor
     xs  => map (sumClause fun . dcon o) xs
