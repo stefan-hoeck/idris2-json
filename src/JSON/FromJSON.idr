@@ -8,6 +8,8 @@
 ||| library
 module JSON.FromJSON
 
+import Data.List.Quantifiers as LQ
+import Data.Vect.Quantifiers as VQ
 import Derive.Prelude
 import JSON.ToJSON
 import JSON.Option
@@ -497,6 +499,32 @@ FromJSON a => FromJSON b => FromJSON (a, b) where
   fromJSON = withArray "Pair" $
     \case [x,y] => [| MkPair (fromJSON x) (fromJSON y) |]
           _     => fail "expected a pair of values"
+
+readLQ :
+     Value v obj
+  => (ps : LQ.All.All (FromJSON . f) ts)
+  => Parser (List v) (LQ.All.All f ts)
+readLQ @{_} @{[]} [] = Right []
+readLQ @{_} @{_::_} (x :: xs) = [| fromJSON x :: readLQ xs |]
+readLQ @{_} @{_::_} [] = fail "list of values too short"
+readLQ @{_} @{[]} _    = fail "list of values too long"
+
+readVQ :
+     Value v obj
+  => (ps : VQ.All.All (FromJSON . f) ts)
+  => Parser (List v) (VQ.All.All f ts)
+readVQ @{_} @{[]} [] = Right []
+readVQ @{_} @{_::_} (x :: xs) = [| fromJSON x :: readVQ xs |]
+readVQ @{_} @{_::_} [] = fail "list of values too short"
+readVQ @{_} @{[]} _    = fail "list of values too long"
+
+export
+LQ.All.All (FromJSON . f) ts => FromJSON (LQ.All.All f ts) where
+  fromJSON = withArray "HList" $ readLQ
+
+export
+VQ.All.All (FromJSON . f) ts => FromJSON (VQ.All.All f ts) where
+  fromJSON = withArray "HVect" $ readVQ
 
 ||| Tries to decode a value encoded as a single field object of the given name.
 |||

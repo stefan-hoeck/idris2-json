@@ -8,6 +8,8 @@
 ||| library
 module JSON.ToJSON
 
+import Data.List.Quantifiers as LQ
+import Data.Vect.Quantifiers as VQ
 import Data.List1
 import Data.String
 import Data.Vect
@@ -149,3 +151,21 @@ ToJSON a => ToJSON b => ToJSON (Either a b) where
 export
 ToJSON a => ToJSON b => ToJSON (a, b) where
   toJSON (x,y) = array [toJSON x, toJSON y]
+
+export
+(ps : LQ.All.All (ToJSON . f) ts) => ToJSON (All f ts) where
+  toJSON = array . forget . zipPropertyWith (\_,v => toJSON v) ps
+
+
+export
+zipAllWith :
+     (f : {0 x : a} -> p x -> q x -> r x)
+  -> VQ.All.All p xs
+  -> All q xs
+  -> All r xs
+zipAllWith f [] [] = []
+zipAllWith f (px :: pxs) (qx :: qxs) = f px qx :: zipAllWith f pxs qxs
+
+export
+(ps : VQ.All.All (ToJSON . f) ts) => ToJSON (VQ.All.All f ts) where
+  toJSON = array . toList . forget . zipAllWith (\_,v => toJSON v) ps
