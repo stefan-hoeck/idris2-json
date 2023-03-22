@@ -8,6 +8,8 @@
 ||| library
 module JSON.Simple.FromJSON
 
+import Data.List.Quantifiers as LQ
+import Data.Vect.Quantifiers as VQ
 import Derive.Prelude
 import JSON.Parser
 import JSON.Simple.Option
@@ -447,6 +449,26 @@ FromJSON a => FromJSON b => FromJSON (a, b) where
   fromJSON = withArray "Pair" $
     \case [x,y] => [| MkPair (fromJSON x) (fromJSON y) |]
           _     => fail "expected a pair of values"
+
+readLQ : (ps : LQ.All.All (FromJSON . f) ts) => Parser (List JSON) (All f ts)
+readLQ @{[]} [] = Right []
+readLQ @{_::_} (x :: xs) = [| fromJSON x :: readLQ xs |]
+readLQ @{_::_} [] = fail "list of values too short"
+readLQ @{[]} _    = fail "list of values too long"
+
+readVQ : (ps : VQ.All.All (FromJSON . f) ts) => Parser (List JSON) (All f ts)
+readVQ @{[]} [] = Right []
+readVQ @{_::_} (x :: xs) = [| fromJSON x :: readVQ xs |]
+readVQ @{_::_} [] = fail "list of values too short"
+readVQ @{[]} _    = fail "list of values too long"
+
+export
+LQ.All.All (FromJSON . f) ts => FromJSON (All f ts) where
+  fromJSON = withArray "HList" $ readLQ
+
+export
+VQ.All.All (FromJSON . f) ts => FromJSON (VQ.All.All f ts) where
+  fromJSON = withArray "HVect" $ readVQ
 
 ||| Tries to decode a value encoded as a single field object of the given name.
 |||

@@ -1,5 +1,7 @@
 module Main
 
+import Data.List.Quantifiers as LQ
+import Data.Vect.Quantifiers as VQ
 import JSON.Derive
 import Hedgehog
 
@@ -224,6 +226,23 @@ anotherRec = [| MkARec integer128 (maybe $ sum nat128) (either string20Unicode16
 weekday : Gen Weekday
 weekday = element [Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday]
 
+elem : Gen Elem
+elem = element [H,He,B,C,N,O,F,Ne]
+
+[AllLEq] LQ.All.All (Eq . p) ts => Eq (LQ.All.All p ts) where
+  (==) [] [] = True
+  (==) @{_ :: _} (h1::t1) (h2::t2) = h1 == h2 && t1 == t2
+
+[AllVEq] VQ.All.All (Eq . p) ts => Eq (VQ.All.All p ts) where
+  (==) [] [] = True
+  (==) @{_ :: _} (h1::t1) (h2::t2) = h1 == h2 && t1 == t2
+
+all : Gen (HList [Elem, ARecord])
+all = [| (\x,y => [x,y]) elem rec |]
+
+allv : Gen (HVect [Elem, ARecord])
+allv = [| (\x,y => [x,y]) elem rec |]
+
 --------------------------------------------------------------------------------
 --          Properties
 --------------------------------------------------------------------------------
@@ -321,6 +340,12 @@ prop_vect = roundTrip $ vect13 intAll
 prop_weekday : Property
 prop_weekday = roundTrip weekday
 
+prop_all : Property
+prop_all = roundTrip @{AllLEq} all
+
+prop_allv : Property
+prop_allv = roundTrip @{AllVEq} allv
+
 main : IO ()
 main = test . pure $ MkGroup "JSON" [
             ("prop_bits8", prop_bits8)
@@ -351,4 +376,6 @@ main = test . pure $ MkGroup "JSON" [
           , ("prop_unit", prop_unit)
           , ("prop_vect", prop_vect)
           , ("prop_weekday", prop_weekday)
+          , ("prop_all", prop_all)
+          , ("prop_allv", prop_allv)
           ]
