@@ -426,6 +426,10 @@ FromJSON a => FromJSON (List a) where
   fromJSON = withArray "List" $ traverse fromJSON
 
 export
+FromJSON a => FromJSON (SnocList a) where
+  fromJSON = map ([<] <><) . fromJSON
+
+export
 FromJSON a => FromJSON (List1 a) where
   fromJSON = withArray "List1" $
     \case Nil    => fail "expected non-empty list"
