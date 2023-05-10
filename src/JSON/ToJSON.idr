@@ -132,6 +132,10 @@ ToJSON a => ToJSON (List a) where
   toJSON = array . map toJSON
 
 export
+ToJSON a => ToJSON (SnocList a) where
+  toJSON = toJSON . (<>> [])
+
+export
 ToJSON a => ToJSON (List1 a) where
   toJSON = toJSON . forget
 
