@@ -150,7 +150,8 @@ export
 typeOf : JSON -> String
 typeOf JNull        = "Null"
 typeOf (JBool _)    = "Boolean"
-typeOf (JNumber _)  = "Number"
+typeOf (JDouble _)  = "Double"
+typeOf (JInteger _)  = "Integer"
 typeOf (JString _)  = "String"
 typeOf (JArray _)   = "Array"
 typeOf (JObject _)  = "Object"
@@ -213,17 +214,12 @@ eqString n s = withString n $ \s' =>
   if s == s' then Right () else fail "expected '\{s}' but got '\{s'}'"
 
 export %inline
-withNumber : Lazy String -> Parser Double a -> Parser JSON a
-withNumber = withValue "Number" $ \case JNumber d => Just d; _ => Nothing
+withDouble : Lazy String -> Parser Double a -> Parser JSON a
+withDouble = withValue "Double" $ \case JDouble d => Just d; _ => Nothing
 
 export
 withInteger : Lazy String -> Parser Integer a -> Parser JSON a
-withInteger s f =
-  withNumber s $ \d =>
-    let n := the Integer (cast d)
-     in if d == fromInteger n
-           then f n
-           else fail "not an integer: \{show d}"
+withInteger = withValue "Integer" $ \case JInteger d => Just d; _ => Nothing
 
 export
 withLargeInteger : Lazy String -> Parser Integer a -> Parser JSON a
@@ -357,7 +353,7 @@ FromJSON Bool where
 
 export
 FromJSON Double where
-  fromJSON = withNumber "Double" Right
+  fromJSON = withDouble "Double" Right
 
 export
 FromJSON Bits8 where

@@ -71,7 +71,7 @@ maxSafeInteger = 9007199254740991
 ||| as a number.
 export %inline
 smallInteger : Integer -> JSON
-smallInteger = JNumber . fromInteger
+smallInteger = JInteger
 
 ||| Encode an `Integer` (possibly larger than `maxSafeInteger`)
 ||| as a number or a string.
@@ -94,7 +94,7 @@ export %inline
 ToJSON Char where toJSON = JString . singleton
 
 export %inline
-ToJSON Double where toJSON = JNumber
+ToJSON Double where toJSON = JDouble
 
 export %inline
 ToJSON Bits8 where toJSON = smallInteger . cast

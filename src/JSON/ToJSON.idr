@@ -84,7 +84,7 @@ export
 ToJSON Char where toJSON = string . singleton
 
 export
-ToJSON Double where toJSON = number
+ToJSON Double where toJSON = double
 
 export
 ToJSON Bits8 where toJSON = smallInteger . cast
