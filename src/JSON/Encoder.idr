@@ -33,8 +33,11 @@ interface Encoder v where
   ||| Encodes a `String` value.
   string : String -> v
 
-  ||| Encodes a `Double` as a JSON `Number`.
-  number : Double -> v
+  ||| Encodes a `Double` as a JSON `Double`.
+  double : Double -> v
+
+  ||| Encodes a `Double` as a JSON `Integer`.
+  integer : Integer -> v
 
   ||| Encodes a `Bool` as a JSON `Boolean`.
   boolean : Bool -> v
@@ -51,7 +54,7 @@ interface Encoder v where
 ||| as a number.
 export %inline
 smallInteger : Encoder v => Integer -> v
-smallInteger = number . fromInteger
+smallInteger = integer
 
 ||| Encode an `Integer` (possibly larger than `masSafeInteger`)
 ||| as a number or a string.
@@ -98,8 +101,11 @@ interface Object obj v => Value v obj | v where
   ||| Tries to convert a value to a `Boolean`.
   getBoolean : v -> Maybe Bool
 
-  ||| Tries to convert a value to a `Number`.
-  getNumber : v -> Maybe Double
+  ||| Tries to convert a value to a `Double`.
+  getDouble : v -> Maybe Double
+
+  ||| Tries to convert a value to an `Integer`.
+  getInteger : v -> Maybe Integer
 
   ||| Tries to convert a value to a `String`.
   getString : v -> Maybe String
@@ -119,7 +125,8 @@ export %inline
 Encoder JSON where
   stringify = show
   string    = JString
-  number    = JNumber
+  double    = JDouble
+  integer   = JInteger
   boolean   = JBool
   null      = JNull
   array     = JArray
@@ -136,7 +143,8 @@ Value JSON (List (String,JSON)) where
 
   typeOf JNull        = "Null"
   typeOf (JBool _)    = "Boolean"
-  typeOf (JNumber _)  = "Number"
+  typeOf (JDouble _)  = "Double"
+  typeOf (JInteger _)  = "Integer"
   typeOf (JString _)  = "String"
   typeOf (JArray _)   = "Array"
   typeOf (JObject _)  = "Object"
@@ -144,8 +152,11 @@ Value JSON (List (String,JSON)) where
   getObject (JObject ps) = Just ps
   getObject _            = Nothing
 
-  getNumber (JNumber v) = Just v
-  getNumber _           = Nothing
+  getDouble (JDouble v) = Just v
+  getDouble _           = Nothing
+
+  getInteger (JInteger v) = Just v
+  getInteger _           = Nothing
 
   getBoolean (JBool v)  = Just v
   getBoolean _            = Nothing

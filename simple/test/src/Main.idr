@@ -311,7 +311,7 @@ prop_anotherRec = roundTrip anotherRec
 prop_anotherRecEnc : Property
 prop_anotherRecEnc = property1 $
   encode (MkARec 12 Nothing (Right False)) ===
-  #"{"v":"MkARec","c":{"anInt":12.0,"perhaps":null,"foo":{"Right":false}}}"#
+  #"{"v":"MkARec","c":{"anInt":12,"perhaps":null,"foo":{"Right":false}}}"#
 
 prop_newtype : Property
 prop_newtype = roundTrip newtype

@@ -24,3 +24,9 @@ test   = "test/test.ipkg"
 type   = "local"
 path   = "simple/test"
 ipkg   = "test.ipkg"
+
+[custom.all.parser-json]
+type   = "git"
+url    = "https://github.com/stefan-hoeck/idris2-parser"
+commit = "latest:main"
+ipkg   = "json/parser-json.ipkg"

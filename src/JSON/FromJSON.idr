@@ -229,17 +229,12 @@ eqString n s = withString n $ \s' =>
   if s == s' then Right () else fail "expected '\{s}' but got '\{s'}'"
 
 export %inline
-withNumber : Value v obj => Lazy String -> Parser Double a -> Parser v a
-withNumber = withValue "Number" getNumber
+withDouble : Value v obj => Lazy String -> Parser Double a -> Parser v a
+withDouble = withValue "Double" getDouble
 
-export
+export %inline
 withInteger : Value v obj => Lazy String -> Parser Integer a -> Parser v a
-withInteger s f =
-  withNumber s $ \d =>
-    let n = the Integer (cast d)
-    in if d == fromInteger n
-          then f n
-          else fail "not an integer: \{show d}"
+withInteger = withValue "Integer" getInteger
 
 export
 withLargeInteger : Value v obj => Lazy String -> Parser Integer a -> Parser v a
@@ -408,7 +403,7 @@ FromJSON Bool where
 
 export
 FromJSON Double where
-  fromJSON = withNumber "Double" pure
+  fromJSON = withDouble "Double" pure
 
 export
 FromJSON Bits8 where
