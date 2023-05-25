@@ -215,22 +215,15 @@ eqString n s = withString n $ \s' =>
 
 export %inline
 withDouble : Lazy String -> Parser Double a -> Parser JSON a
-withDouble = withValue "Double" $ \case JDouble d => Just d; _ => Nothing
+withDouble =
+  withValue "Double" $ \case
+    JDouble d  => Just d
+    JInteger n => Just (cast n)
+    _          => Nothing
 
 export
 withInteger : Lazy String -> Parser Integer a -> Parser JSON a
 withInteger = withValue "Integer" $ \case JInteger d => Just d; _ => Nothing
-
-export
-withLargeInteger : Lazy String -> Parser Integer a -> Parser JSON a
-withLargeInteger s f v =
-  withInteger s f v `orElse` withString s parseStr v
-  where
-    parseStr : Parser String a
-    parseStr str =
-      case parseInteger {a = Integer} str of
-        Nothing => fail "not an integer: \{show str}"
-        Just n  => f n
 
 export
 boundedIntegral :
@@ -241,19 +234,6 @@ boundedIntegral :
   -> Parser JSON a
 boundedIntegral s lo up =
   withInteger s $ \n =>
-    if n >= lo && n <= up
-       then Right $ fromInteger n
-       else fail "integer out of bounds: \{show n}"
-
-export
-boundedLargeIntegral :
-     Num a
-  => Lazy String
-  -> (lower : Integer)
-  -> (upper : Integer)
-  -> Parser JSON a
-boundedLargeIntegral s lo up =
-  withLargeInteger s $ \n =>
     if n >= lo && n <= up
        then Right $ fromInteger n
        else fail "integer out of bounds: \{show n}"
@@ -369,37 +349,37 @@ FromJSON Bits32 where
 
 export
 FromJSON Bits64 where
-  fromJSON = boundedLargeIntegral "Bits64" 0 0xffffffffffffffff
+  fromJSON = boundedIntegral "Bits64" 0 0xffffffffffffffff
 
 export
 FromJSON Int where
-  fromJSON = boundedLargeIntegral "Int" (-0x8000000000000000) 0x7fffffffffffffff
+  fromJSON = boundedIntegral "Int" (-0x8000000000000000) 0x7fffffffffffffff
 
 export
 FromJSON Int8 where
-  fromJSON = boundedLargeIntegral "Int8" (-0x80) 0x7f
+  fromJSON = boundedIntegral "Int8" (-0x80) 0x7f
 
 export
 FromJSON Int16 where
-  fromJSON = boundedLargeIntegral "Int16" (-0x8000) 0x7fff
+  fromJSON = boundedIntegral "Int16" (-0x8000) 0x7fff
 
 export
 FromJSON Int32 where
-  fromJSON = boundedLargeIntegral "Int32" (-0x80000000) 0x7fffffff
+  fromJSON = boundedIntegral "Int32" (-0x80000000) 0x7fffffff
 
 export
 FromJSON Int64 where
-  fromJSON = boundedLargeIntegral "Int64" (-0x8000000000000000) 0x7fffffffffffffff
+  fromJSON = boundedIntegral "Int64" (-0x8000000000000000) 0x7fffffffffffffff
 
 export
 FromJSON Nat where
-  fromJSON = withLargeInteger "Nat" $ \n =>
+  fromJSON = withInteger "Nat" $ \n =>
     if n >= 0 then Right $ fromInteger n
     else fail #"not a natural number: \#{show n}"#
 
 export
 FromJSON Integer where
-  fromJSON = withLargeInteger "Integer" Right
+  fromJSON = withInteger "Integer" Right
 
 export
 FromJSON String where
