@@ -87,37 +87,37 @@ export
 ToJSON Double where toJSON = double
 
 export
-ToJSON Bits8 where toJSON = smallInteger . cast
+ToJSON Bits8 where toJSON = integer . cast
 
 export
-ToJSON Bits16 where toJSON = smallInteger . cast
+ToJSON Bits16 where toJSON = integer . cast
 
 export
-ToJSON Bits32 where toJSON = smallInteger . cast
+ToJSON Bits32 where toJSON = integer . cast
 
 export
-ToJSON Bits64 where toJSON = largeInteger . cast
+ToJSON Bits64 where toJSON = integer . cast
 
 export
-ToJSON Int8 where toJSON = smallInteger . cast
+ToJSON Int8 where toJSON = integer . cast
 
 export
-ToJSON Int16 where toJSON = smallInteger . cast
+ToJSON Int16 where toJSON = integer . cast
 
 export
-ToJSON Int32 where toJSON = smallInteger . cast
+ToJSON Int32 where toJSON = integer . cast
 
 export
-ToJSON Int64 where toJSON = largeInteger . cast
+ToJSON Int64 where toJSON = integer . cast
 
 export
-ToJSON Int where toJSON = largeInteger . cast
+ToJSON Int where toJSON = integer . cast
 
 export
-ToJSON Integer where toJSON = largeInteger
+ToJSON Integer where toJSON = integer
 
 export
-ToJSON Nat where toJSON = largeInteger . natToInteger
+ToJSON Nat where toJSON = integer . cast
 
 export
 ToJSON Bool where toJSON = boolean

@@ -58,31 +58,6 @@ taggedObject tf cf tag x = JObject [(tf, JString tag), (cf, x)]
 --          Implementations
 --------------------------------------------------------------------------------
 
-||| In Javascript, numbers are represented as IEEE 64bit
-||| floating point numbers. Integers can be represented exactly
-||| in the range [-(2^53-1), 2^53-1]. This library's default
-||| behavior is, that large integers will be encoded as
-||| `string` and smaller values use `number`
-public export
-maxSafeInteger : Integer
-maxSafeInteger = 9007199254740991
-
-||| Encode a small integer (less than or equal to `maxSafeInteger`)
-||| as a number.
-export %inline
-smallInteger : Integer -> JSON
-smallInteger = JInteger
-
-||| Encode an `Integer` (possibly larger than `maxSafeInteger`)
-||| as a number or a string.
-|||
-||| The corresponding decoder for potentially large numbers
-||| will also try both types: Number and string.
-export %inline
-largeInteger : Integer -> JSON
-largeInteger n =
-  if abs n <= maxSafeInteger then smallInteger n else JString $ show n
-
 export
 ToJSON Void where
   toJSON x impossible
@@ -97,37 +72,37 @@ export %inline
 ToJSON Double where toJSON = JDouble
 
 export %inline
-ToJSON Bits8 where toJSON = smallInteger . cast
+ToJSON Bits8 where toJSON = JInteger . cast
 
 export %inline
-ToJSON Bits16 where toJSON = smallInteger . cast
+ToJSON Bits16 where toJSON = JInteger . cast
 
 export %inline
-ToJSON Bits32 where toJSON = smallInteger . cast
+ToJSON Bits32 where toJSON = JInteger . cast
 
 export %inline
-ToJSON Bits64 where toJSON = largeInteger . cast
+ToJSON Bits64 where toJSON = JInteger . cast
 
 export %inline
-ToJSON Int8 where toJSON = smallInteger . cast
+ToJSON Int8 where toJSON = JInteger . cast
 
 export %inline
-ToJSON Int16 where toJSON = smallInteger . cast
+ToJSON Int16 where toJSON = JInteger . cast
 
 export %inline
-ToJSON Int32 where toJSON = smallInteger . cast
+ToJSON Int32 where toJSON = JInteger . cast
 
 export %inline
-ToJSON Int64 where toJSON = largeInteger . cast
+ToJSON Int64 where toJSON = JInteger . cast
 
 export %inline
-ToJSON Int where toJSON = largeInteger . cast
+ToJSON Int where toJSON = JInteger . cast
 
 export %inline
-ToJSON Integer where toJSON = largeInteger
+ToJSON Integer where toJSON = JInteger
 
 export %inline
-ToJSON Nat where toJSON = largeInteger . natToInteger
+ToJSON Nat where toJSON = JInteger . cast
 
 export %inline
 ToJSON Bool where toJSON = JBool

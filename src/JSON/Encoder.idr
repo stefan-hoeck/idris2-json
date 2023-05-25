@@ -10,15 +10,6 @@ import Data.List
 import Data.Vect
 import public JSON.Parser
 
-||| In Javascript, numbers are represented as IEEE 64bit
-||| floating point numbers. Integers can be represented exactly
-||| in the range [-(2^53-1), 2^53-1]. This library's default
-||| behavior is, that large integers will be encoded as
-||| `string` and smaller values use `number`
-public export
-maxSafeInteger : Integer
-maxSafeInteger = 9007199254740991
-
 --------------------------------------------------------------------------------
 --          Encoding
 --------------------------------------------------------------------------------
@@ -49,23 +40,6 @@ interface Encoder v where
   object : List (String,v) -> v
 
   null : v
-
-||| Encode a small integer (less than or equal to `maxSafeInteger`)
-||| as a number.
-export %inline
-smallInteger : Encoder v => Integer -> v
-smallInteger = integer
-
-||| Encode an `Integer` (possibly larger than `masSafeInteger`)
-||| as a number or a string.
-|||
-||| The corresponding decoder for potentially large numbers
-||| will also try both types: Number and string.
-export %inline
-largeInteger : Encoder v => Integer -> v
-largeInteger n = if abs n <= maxSafeInteger
-                    then smallInteger n
-                    else string $ show n
 
 --------------------------------------------------------------------------------
 --          Decoding
@@ -152,8 +126,9 @@ Value JSON (List (String,JSON)) where
   getObject (JObject ps) = Just ps
   getObject _            = Nothing
 
-  getDouble (JDouble v) = Just v
-  getDouble _           = Nothing
+  getDouble (JDouble v)  = Just v
+  getDouble (JInteger v) = Just (cast v)
+  getDouble _            = Nothing
 
   getInteger (JInteger v) = Just v
   getInteger _           = Nothing
