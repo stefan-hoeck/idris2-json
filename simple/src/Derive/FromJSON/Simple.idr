@@ -125,7 +125,9 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
             Values sx => decValues sx  c.applied
 
           clause : DCon -> Clause
-          clause c = patClause `(MkPair ~(c.tag) ~(bval)) `(~(rhs c) ~(vval))
+          clause c =
+            let rightHand := `(prependPath (~(rhs c) ~(vval)) $ Key ~(c.tag))
+             in patClause `(MkPair ~(c.tag) ~(bval)) rightHand
 
           pairCases : TTImp
           pairCases =
