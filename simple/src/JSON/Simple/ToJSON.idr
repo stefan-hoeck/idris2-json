@@ -59,6 +59,9 @@ taggedObject tf cf tag x = JObject [(tf, JString tag), (cf, x)]
 --------------------------------------------------------------------------------
 
 export
+ToJSON JSON where toJSON = id
+
+export
 ToJSON Void where
   toJSON x impossible
 

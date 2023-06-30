@@ -318,6 +318,9 @@ optField = explicitParseFieldMaybe' fromJSON
 --------------------------------------------------------------------------------
 
 export
+FromJSON JSON where fromJSON = Right
+
+export
 FromJSON Void where
   fromJSON v = fail "Cannot parse Void"
 
