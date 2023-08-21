@@ -66,12 +66,14 @@ record Hero where
 %runElab derive "Hero" [Show,Eq]
 
 ToJSON Hero where
-  toJSON h = object [ jpair "name"   h.name
-                    , jpair "age"    h.age
-                    , jpair "race"   h.race
-                    , jpair "class"  h.class
-                    , jpair "allies" h.allies
-                    ]
+  toJSON h =
+    object
+      [ jpair "name"   h.name
+      , jpair "age"    h.age
+      , jpair "race"   h.race
+      , jpair "class"  h.class
+      , jpair "allies" h.allies
+      ]
 ```
 
 So, that was very easy. For encoding, we use the functions
@@ -142,13 +144,14 @@ data Gender = Female | Male | NonBinary
 
 %runElab derive "Gender" [Show,Eq,Ord,customToJSON toLower]
 
-data Weekday = Monday
-             | Tuesday
-             | Wednesday
-             | Thursday
-             | Friday
-             | Saturday
-             | Sunday
+data Weekday =
+    Monday
+  | Tuesday
+  | Wednesday
+  | Thursday
+  | Friday
+  | Saturday
+  | Sunday
 
 %runElab derive "Weekday" [Show,Eq,Ord,customToJSON take3]
 ```

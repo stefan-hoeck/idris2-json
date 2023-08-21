@@ -227,8 +227,8 @@ withInteger = withValue "Integer" $ \case JInteger d => Just d; _ => Nothing
 
 export
 boundedIntegral :
-     Num a
-  => Lazy String
+     {auto _ : Num a}
+  -> Lazy String
   -> (lower : Integer)
   -> (upper : Integer)
   -> Parser JSON a
@@ -256,8 +256,8 @@ export
 explicitParseField : Parser JSON a -> List (String,JSON) -> Parser String a
 explicitParseField p o key =
   case lookup key o of
-       Nothing => fail "key \{show key} not found"
-       Just v  => p v `prependPath` Key key
+    Nothing => fail "key \{show key} not found"
+    Just v  => p v `prependPath` Key key
 
 ||| See `fieldMaybe`
 export
@@ -267,9 +267,9 @@ explicitParseFieldMaybe :
   -> Parser String (Maybe a)
 explicitParseFieldMaybe p o key =
   case lookup key o of
-       Nothing    => Right Nothing
-       Just JNull => Right Nothing
-       Just v     => map Just $ p v `prependPath` Key key
+    Nothing    => Right Nothing
+    Just JNull => Right Nothing
+    Just v     => map Just $ p v `prependPath` Key key
 
 ||| See `optField`
 export
@@ -279,8 +279,8 @@ explicitParseFieldMaybe' :
   -> Parser String a
 explicitParseFieldMaybe' p o key =
   case lookup key o of
-       Nothing   => p JNull `prependPath` Key key
-       Just v    => p v `prependPath` Key key
+    Nothing => p JNull `prependPath` Key key
+    Just v  => p v `prependPath` Key key
 
 ||| Retrieve the value associated with the given key of an `IObject`.
 ||| The result is `empty` if the key is not present or the value cannot
@@ -410,22 +410,21 @@ FromJSON a => FromJSON (SnocList a) where
 
 export
 FromJSON a => FromJSON (List1 a) where
-  fromJSON = withArray "List1" $
-    \case Nil    => fail "expected non-empty list"
-          h :: t => traverse fromJSON (h ::: t)
+  fromJSON = withArray "List1" $ \case
+    Nil    => fail "expected non-empty list"
+    h :: t => traverse fromJSON (h ::: t)
 
 export
 {n : Nat} -> FromJSON a => FromJSON (Vect n a) where
-  fromJSON = withArray "Vect \{show n}" $
-    \vs => case toVect n vs of
-                Just vect => traverse fromJSON vect
-                Nothing   => fail "expected list of length \{show n}"
+  fromJSON = withArray "Vect \{show n}" $ \vs => case toVect n vs of
+    Just vect => traverse fromJSON vect
+    Nothing   => fail "expected list of length \{show n}"
 
 export
 FromJSON a => FromJSON b => FromJSON (Either a b) where
   fromJSON = withObject "Either" $ \o =>
-               map Left (field o "Left") `orElse`
-               map Right (field o "Right")
+    map Left (field o "Left") `orElse`
+    map Right (field o "Right")
 
 export
 FromJSON a => FromJSON b => FromJSON (a, b) where

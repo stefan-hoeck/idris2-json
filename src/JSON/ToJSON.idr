@@ -63,8 +63,8 @@ twoElemArray s x = array [string s, x]
 ||| for encoding sum types.
 export
 taggedObject :
-     Encoder v
-  => (tagField, contentField, tag : String)
+     {auto _ : Encoder v}
+  -> (tagField, contentField, tag : String)
   -> v
   -> v
 taggedObject tf cf tag x = object [(tf, string tag), (cf, x)]
