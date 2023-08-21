@@ -112,13 +112,14 @@ opts6 = MkOptions (TaggedObject "v" "c") False False id id
 
 -- enum types (all nullary constructors) can be encoded just
 -- as a string representing the constructor's name
-data Weekday = Monday
-             | Tuesday
-             | Wednesday
-             | Thursday
-             | Friday
-             | Saturday
-             | Sunday
+data Weekday =
+    Monday
+  | Tuesday
+  | Wednesday
+  | Thursday
+  | Friday
+  | Saturday
+  | Sunday
 
 %runElab derive "Weekday" [Show,Eq,ToJSON,FromJSON]
 
@@ -347,35 +348,37 @@ prop_allv : Property
 prop_allv = roundTrip @{AllVEq} allv
 
 main : IO ()
-main = test . pure $ MkGroup "JSON" [
-            ("prop_bits8", prop_bits8)
-          , ("prop_bits16", prop_bits16)
-          , ("prop_bits32", prop_bits32)
-          , ("prop_bits64", prop_bits64)
-          , ("prop_bool", prop_bool)
-          , ("prop_char", prop_char)
-          , ("prop_double", prop_double)
-          , ("prop_either", prop_either)
-          , ("prop_int", prop_int)
-          , ("prop_integer", prop_integer)
-          , ("prop_list", prop_list)
-          , ("prop_list1", prop_list1)
-          , ("prop_maybe", prop_maybe)
-          , ("prop_nat", prop_nat)
-          , ("prop_newtype", prop_newtype)
-          , ("prop_pair", prop_pair)
-          , ("prop_rec", prop_rec)
-          , ("prop_anotherRec", prop_anotherRec)
-          , ("prop_anotherRecEnc", prop_anotherRecEnc)
-          , ("prop_string", prop_string)
-          , ("prop_sum", prop_sum)
-          , ("prop_sum2", prop_sum2)
-          , ("prop_sum3", prop_sum3)
-          , ("prop_sum4", prop_sum4)
-          , ("prop_sum5", prop_sum5)
-          , ("prop_unit", prop_unit)
-          , ("prop_vect", prop_vect)
-          , ("prop_weekday", prop_weekday)
-          , ("prop_all", prop_all)
-          , ("prop_allv", prop_allv)
-          ]
+main = test . pure $
+  MkGroup
+    "JSON"
+    [ ("prop_bits8", prop_bits8)
+    , ("prop_bits16", prop_bits16)
+    , ("prop_bits32", prop_bits32)
+    , ("prop_bits64", prop_bits64)
+    , ("prop_bool", prop_bool)
+    , ("prop_char", prop_char)
+    , ("prop_double", prop_double)
+    , ("prop_either", prop_either)
+    , ("prop_int", prop_int)
+    , ("prop_integer", prop_integer)
+    , ("prop_list", prop_list)
+    , ("prop_list1", prop_list1)
+    , ("prop_maybe", prop_maybe)
+    , ("prop_nat", prop_nat)
+    , ("prop_newtype", prop_newtype)
+    , ("prop_pair", prop_pair)
+    , ("prop_rec", prop_rec)
+    , ("prop_anotherRec", prop_anotherRec)
+    , ("prop_anotherRecEnc", prop_anotherRecEnc)
+    , ("prop_string", prop_string)
+    , ("prop_sum", prop_sum)
+    , ("prop_sum2", prop_sum2)
+    , ("prop_sum3", prop_sum3)
+    , ("prop_sum4", prop_sum4)
+    , ("prop_sum5", prop_sum5)
+    , ("prop_unit", prop_unit)
+    , ("prop_vect", prop_vect)
+    , ("prop_weekday", prop_weekday)
+    , ("prop_all", prop_all)
+    , ("prop_allv", prop_allv)
+    ]

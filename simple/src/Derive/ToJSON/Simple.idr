@@ -83,8 +83,9 @@ parameters (nms : List Name) (o : Options)
   toJsonClauses : (fun : Name) -> TypeInfo -> List Clause
   toJsonClauses fun ti = case ti.cons of
     -- single constructor
-    [x] => if o.unwrapRecords then [recClause fun $ dcon o x]
-           else [sumClause fun (dcon o x)]
+    [x] =>
+      if o.unwrapRecords then [recClause fun $ dcon o x]
+      else [sumClause fun (dcon o x)]
 
     -- multi-constructor
     xs  => map (sumClause fun . dcon o) xs
@@ -102,9 +103,10 @@ customToJSON : Options -> List Name -> ParamTypeInfo -> Res (List TopLevel)
 customToJSON o nms p =
   let fun  := funName p "toJson"
       impl := implName p "ToJSON"
-   in Right [ TL (toJsonClaim fun p) (toJsonDef nms o fun p.info)
-            , TL (toJsonImplClaim impl p) (toJsonImplDef fun impl)
-            ]
+   in Right
+        [ TL (toJsonClaim fun p) (toJsonDef nms o fun p.info)
+        , TL (toJsonImplClaim impl p) (toJsonImplDef fun impl)
+        ]
 
 ||| Generate declarations and implementations for `ToJSON` for a given data type
 ||| using default settings.

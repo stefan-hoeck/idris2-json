@@ -95,11 +95,13 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
     let nargs := `(fromInteger ~(primVal $ BI $ cast (length sx)))
         mtch  := matchArray sx `(Nil)
      in `(withArrayN ~(nargs) ~(tpeName) $ \ ~(mtch) => ~(go sx res))
-    where go : SnocList (BoundArg 2 Regular) -> TTImp -> TTImp
-          go [<]                    res = res
-          go (sx :< (BA a [x,y] _)) res =
-            let pat := assertIfRec nms a.type `(fromJSON ~(varStr y))
-             in go sx (matchEither pat res x)
+
+    where
+      go : SnocList (BoundArg 2 Regular) -> TTImp -> TTImp
+      go [<]                    res = res
+      go (sx :< (BA a [x,y] _)) res =
+        let pat := assertIfRec nms a.type `(fromJSON ~(varStr y))
+         in go sx (matchEither pat res x)
 
   consts : List DCon -> TTImp
   consts ds =
@@ -118,26 +120,27 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
           cf := primVal $ Str cs
        in `(fromTaggedObject ~(tpeName) ~(tf) ~(cf) ~(pairCases))
 
-    where rhs : DCon -> TTImp
-          rhs c = case c.args of
-            Const     => decFields [<] c.applied
-            Fields sx => decFields sx  c.applied
-            Values sx => decValues sx  c.applied
+    where
+      rhs : DCon -> TTImp
+      rhs c = case c.args of
+        Const     => decFields [<] c.applied
+        Fields sx => decFields sx  c.applied
+        Values sx => decValues sx  c.applied
 
-          clause : DCon -> Clause
-          clause c =
-            let rightHand := `(prependPath (~(rhs c) ~(vval)) $ Key ~(c.tag))
-             in patClause `(MkPair ~(c.tag) ~(bval)) rightHand
+      clause : DCon -> Clause
+      clause c =
+        let rightHand := `(prependPath (~(rhs c) ~(vval)) $ Key ~(c.tag))
+         in patClause `(MkPair ~(c.tag) ~(bval)) rightHand
 
-          pairCases : TTImp
-          pairCases =
-            let clauses := map clause (d :: ds)
-                catch   := patClause `(MkPair s _) `(fail $ ~(err) ++ show s)
-             in lam (lambdaArg {a = Name} "x") $
-                iCase `(x) implicitFalse (clauses ++ [catch])
+      pairCases : TTImp
+      pairCases =
+        let clauses := map clause (d :: ds)
+            catch   := patClause `(MkPair s _) `(fail $ ~(err) ++ show s)
+         in lam (lambdaArg {a = Name} "x") $
+            iCase `(x) implicitFalse (clauses ++ [catch])
 
-          untagged : TTImp
-          untagged = foldl (\t,c => `(~(t) <|> ~(rhs c))) (rhs d) ds
+      untagged : TTImp
+      untagged = foldl (\t,c => `(~(t) <|> ~(rhs c))) (rhs d) ds
 
 
   decSum : (constants, withArgs : List DCon) -> TTImp
@@ -157,9 +160,10 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
   export
   fromJsonClause : (fun : Name) -> TypeInfo -> Clause
   fromJsonClause fun x = case map (dcon o) x.cons of
-    [c] => if o.unwrapRecords then patClause (var fun) (decRecord c)
-           else if isConst c then patClause (var fun) (decSum [c] [])
-           else patClause (var fun) (decSum [] [c])
+    [c] =>
+      if o.unwrapRecords then patClause (var fun) (decRecord c)
+      else if isConst c then patClause (var fun) (decSum [c] [])
+      else patClause (var fun) (decSum [] [c])
     cs  =>
       let (consts,withArgs) := partition isConst cs
        in  patClause (var fun) (decSum consts withArgs)
@@ -180,10 +184,11 @@ customFromJSON : Options -> List Name -> ParamTypeInfo -> Res (List TopLevel)
 customFromJSON o nms p =
   let fun  := funName p "fromJson"
       impl := implName p "FromJSON"
-   in Right [ TL (fromJsonClaim fun p)
-                 (fromJsonDef nms o p.namePrim (err p) fun p.info)
-            , TL (fromJsonImplClaim impl p) (fromJsonImplDef fun impl)
-            ]
+   in Right
+        [ TL (fromJsonClaim fun p)
+             (fromJsonDef nms o p.namePrim (err p) fun p.info)
+        , TL (fromJsonImplClaim impl p) (fromJsonImplDef fun impl)
+        ]
 
 ||| Generate declarations and implementations for
 ||| `FromJSON` for a given data type
@@ -191,4 +196,3 @@ customFromJSON o nms p =
 export %inline
 FromJSON : List Name -> ParamTypeInfo -> Res (List TopLevel)
 FromJSON = customFromJSON defaultOptions
-
