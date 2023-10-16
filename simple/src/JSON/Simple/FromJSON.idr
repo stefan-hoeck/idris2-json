@@ -10,11 +10,13 @@ module JSON.Simple.FromJSON
 
 import Data.List.Quantifiers as LQ
 import Data.Vect.Quantifiers as VQ
+import Data.SortedMap
 import Derive.Prelude
 import JSON.Parser
 import JSON.Simple.Option
 import JSON.Simple.ToJSON
 import Text.FC
+import Text.Lex.Manual
 import Text.ParseError
 
 %language ElabReflection
@@ -127,6 +129,11 @@ interface FromJSON a  where
   constructor MkFromJSON
   fromJSON : Parser JSON a
 
+public export
+interface FromJSONKey a  where
+  constructor MkFromJSONKey
+  fromKey : Parser String a
+
 export %inline
 decode : FromJSON a => String -> DecodingResult a
 decode s =
@@ -197,6 +204,10 @@ withValue s get n f val =
     Nothing => prependContext n $ typeMismatch s val
 
 export %inline
+withKey : Parser String a -> Parser String a
+withKey f = prependFailure "parsing key failed, " . f
+
+export %inline
 withObject : Lazy String -> Parser (List (String,JSON)) a -> Parser JSON a
 withObject = withValue "Object" $ \case JObject ps => Just ps; _ => Nothing
 
@@ -226,6 +237,14 @@ withInteger : Lazy String -> Parser Integer a -> Parser JSON a
 withInteger = withValue "Integer" $ \case JInteger d => Just d; _ => Nothing
 
 export
+withIntegerKey : Parser Integer a -> Parser String a
+withIntegerKey f =
+  withKey $ \s =>
+    case tok {e = Void} int (unpack s) of
+      Succ v [] => f v
+      _         => fail "not an integer: \{s}"
+
+export
 boundedIntegral :
      {auto _ : Num a}
   -> Lazy String
@@ -234,6 +253,18 @@ boundedIntegral :
   -> Parser JSON a
 boundedIntegral s lo up =
   withInteger s $ \n =>
+    if n >= lo && n <= up
+       then Right $ fromInteger n
+       else fail "integer out of bounds: \{show n}"
+
+export
+boundedIntegralKey :
+     {auto _ : Num a}
+  -> (lower : Integer)
+  -> (upper : Integer)
+  -> Parser String a
+boundedIntegralKey lo up =
+  withIntegerKey $ \n =>
     if n >= lo && n <= up
        then Right $ fromInteger n
        else fail "integer out of bounds: \{show n}"
@@ -335,8 +366,24 @@ FromJSON Bool where
   fromJSON = withBoolean "Bool" Right
 
 export
+FromJSONKey Bool where
+  fromKey =
+    withKey $
+      \case "True"  => Right True
+            "False" => Right False
+            s       => fail "not a bool: \{s}"
+
+export
 FromJSON Double where
   fromJSON = withDouble "Double" Right
+
+export
+FromJSONKey Double where
+  fromKey =
+    withKey $ \s =>
+      case double {e = Void} (unpack s) of
+        Succ v [] => Right v
+        _         => fail "not a floating point number: \{s}"
 
 export
 FromJSON Bits8 where
@@ -375,22 +422,79 @@ FromJSON Int64 where
   fromJSON = boundedIntegral "Int64" (-0x8000000000000000) 0x7fffffffffffffff
 
 export
+FromJSONKey Bits8 where
+  fromKey = boundedIntegralKey 0 0xff
+
+export
+FromJSONKey Bits16 where
+  fromKey = boundedIntegralKey 0 0xffff
+
+export
+FromJSONKey Bits32 where
+  fromKey = boundedIntegralKey 0 0xffffffff
+
+export
+FromJSONKey Bits64 where
+  fromKey = boundedIntegralKey 0 0xffffffffffffffff
+
+export
+FromJSONKey Int where
+  fromKey = boundedIntegralKey (-0x8000000000000000) 0x7fffffffffffffff
+
+export
+FromJSONKey Int8 where
+  fromKey = boundedIntegralKey (-0x80) 0x7f
+
+export
+FromJSONKey Int16 where
+  fromKey = boundedIntegralKey (-0x8000) 0x7fff
+
+export
+FromJSONKey Int32 where
+  fromKey = boundedIntegralKey (-0x80000000) 0x7fffffff
+
+export
+FromJSONKey Int64 where
+  fromKey = boundedIntegralKey (-0x8000000000000000) 0x7fffffffffffffff
+
+export
 FromJSON Nat where
   fromJSON = withInteger "Nat" $ \n =>
     if n >= 0 then Right $ fromInteger n
-    else fail #"not a natural number: \#{show n}"#
+    else fail "not a natural number: \{show n}"
 
 export
+FromJSONKey Nat where
+  fromKey = withIntegerKey $ \n =>
+    if n >= 0 then Right $ fromInteger n
+    else fail "not a natural number: \{show n}"
+
+export %inline
 FromJSON Integer where
   fromJSON = withInteger "Integer" Right
 
-export
+export %inline
+FromJSONKey Integer where
+  fromKey = withIntegerKey Right
+
+export %inline
 FromJSON String where
   fromJSON = withString "String" Right
+
+export %inline
+FromJSONKey String where
+  fromKey = withKey Right
 
 export
 FromJSON Char where
   fromJSON = withString "Char" $ \str =>
+    case strM str of
+      StrCons c "" => Right c
+      _            => fail "expected a string of length 1"
+
+export
+FromJSONKey Char where
+  fromKey = withKey $ \str =>
     case strM str of
       StrCons c "" => Right c
       _            => fail "expected a string of length 1"
@@ -413,6 +517,22 @@ FromJSON a => FromJSON (List1 a) where
   fromJSON = withArray "List1" $ \case
     Nil    => fail "expected non-empty list"
     h :: t => traverse fromJSON (h ::: t)
+
+sortedMap :
+     {auto ord : Ord k}
+  -> {auto jk  : FromJSONKey k}
+  -> {auto jv  : FromJSON v}
+  -> SortedMap k v
+  -> Parser (List (String,JSON)) (SortedMap k v)
+sortedMap m []            = Right m
+sortedMap m ((x,y) :: ps) =
+  let Right k' := fromKey x  | Left err => Left err
+      Right v' := fromJSON y | Left err => Left err
+   in sortedMap (insert k' v' m) ps
+
+export %inline
+Ord k => FromJSONKey k => FromJSON v => FromJSON (SortedMap k v) where
+  fromJSON = withObject "SortedMap" (sortedMap empty)
 
 export
 {n : Nat} -> FromJSON a => FromJSON (Vect n a) where
