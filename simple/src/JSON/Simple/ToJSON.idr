@@ -9,21 +9,29 @@
 module JSON.Simple.ToJSON
 
 import Data.List.Quantifiers as LQ
-import Data.Vect.Quantifiers as VQ
 import Data.List1
+import Data.SortedMap
 import Data.String
 import Data.Vect
-import JSON.Simple.Option
+import Data.Vect.Quantifiers as VQ
 import JSON.Parser
+import JSON.Simple.Option
 
+||| Interface for encoding an Idris value as a JSON value.
 public export
 interface ToJSON a where
   constructor MkToJSON
   toJSON : a -> JSON
 
+||| Interface for encoding an Idris value as a key in a JSON object
+public export
+interface ToJSONKey a where
+  constructor MkToJSONKey
+  toKey : a -> String
+
 export %inline
-jpair : ToJSON a => String -> a -> (String,JSON)
-jpair s val = (s, toJSON val)
+jpair : ToJSONKey k => ToJSON a => k -> a -> (String,JSON)
+jpair s val = (toKey s, toJSON val)
 
 export %inline
 encode : ToJSON a => a -> String
@@ -69,7 +77,13 @@ export %inline
 ToJSON String where toJSON = JString
 
 export %inline
+ToJSONKey String where toKey = id
+
+export %inline
 ToJSON Char where toJSON = JString . singleton
+
+export %inline
+ToJSONKey Char where toKey = singleton
 
 export %inline
 ToJSON Double where toJSON = JDouble
@@ -110,6 +124,45 @@ ToJSON Nat where toJSON = JInteger . cast
 export %inline
 ToJSON Bool where toJSON = JBool
 
+export %inline
+ToJSONKey Double where toKey = cast
+
+export %inline
+ToJSONKey Bits8 where toKey = cast
+
+export %inline
+ToJSONKey Bits16 where toKey = cast
+
+export %inline
+ToJSONKey Bits32 where toKey = cast
+
+export %inline
+ToJSONKey Bits64 where toKey = cast
+
+export %inline
+ToJSONKey Int8 where toKey = cast
+
+export %inline
+ToJSONKey Int16 where toKey = cast
+
+export %inline
+ToJSONKey Int32 where toKey = cast
+
+export %inline
+ToJSONKey Int64 where toKey = cast
+
+export %inline
+ToJSONKey Int where toKey = cast
+
+export %inline
+ToJSONKey Integer where toKey = cast
+
+export %inline
+ToJSONKey Nat where toKey = cast
+
+export %inline
+ToJSONKey Bool where toKey = show
+
 export
 ToJSON a => ToJSON (Maybe a) where
   toJSON Nothing  = JNull
@@ -148,6 +201,9 @@ export
 (ps : LQ.All.All (ToJSON . f) ts) => ToJSON (All f ts) where
   toJSON = JArray . forget . zipPropertyWith (\_,v => toJSON v) ps
 
+export
+ToJSONKey k => ToJSON v => ToJSON (SortedMap k v) where
+  toJSON = JObject . map (uncurry jpair) . SortedMap.toList
 
 export
 zipAllWith :
