@@ -340,6 +340,18 @@ fieldMaybe :
   -> Parser String (Maybe a)
 fieldMaybe = explicitParseFieldMaybe fromJSON
 
+||| Retrieve the value associated with the given key of an `Object`
+||| using the given default value in case the key is missing.
+export %inline
+fieldWithDeflt :
+     {auto _ : Object obj v}
+  -> {auto _ : FromJSON a}
+  -> {auto _ : Value v obj}
+  -> obj
+  -> Lazy a
+  -> Parser String a
+fieldWithDeflt o v s = fromMaybe v <$> fieldMaybe o s
+
 ||| Deprecated: Use `fieldMaybe` instead
 export %deprecate %inline
 (.:?) :

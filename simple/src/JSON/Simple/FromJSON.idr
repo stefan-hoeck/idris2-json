@@ -344,6 +344,12 @@ export %inline
 optField : FromJSON a => List (String,JSON) -> Parser String a
 optField = explicitParseFieldMaybe' fromJSON
 
+||| Retrieve the value associated with the given key of an `IObject`
+||| using the given default value in case the key is missing.
+export %inline
+fieldWithDeflt : FromJSON a => List (String,JSON) -> Lazy a -> Parser String a
+fieldWithDeflt ps v s = fromMaybe v <$> fieldMaybe ps s
+
 --------------------------------------------------------------------------------
 --          Implementations
 --------------------------------------------------------------------------------
