@@ -23,15 +23,15 @@ generalToJsonType is arg = piAll `(~(arg) -> JSON) is
 ||| Top-level function declaration implementing the `toJSON` function for
 ||| the given data type.
 export
-toJsonClaim : (fun : Name) -> (p : ParamTypeInfo) -> Decl
-toJsonClaim fun p =
+toJsonClaim : Visibility -> (fun : Name) -> (p : ParamTypeInfo) -> Decl
+toJsonClaim vis fun p =
   let tpe := generalToJsonType (allImplicits p "ToJSON") p.applied
-   in public' fun tpe
+   in simpleClaim vis fun tpe
 
 ||| Top-level declaration of the `ToJSON` implementation for the given data type.
 export
-toJsonImplClaim : (impl : Name) -> (p : ParamTypeInfo) -> Decl
-toJsonImplClaim impl p = implClaim impl (implType "ToJSON" p)
+toJsonImplClaim : Visibility -> (impl : Name) -> (p : ParamTypeInfo) -> Decl
+toJsonImplClaim vis impl p = implClaimVis vis impl (implType "ToJSON" p)
 
 --------------------------------------------------------------------------------
 --          Definitions
@@ -99,17 +99,22 @@ parameters (nms : List Name) (o : Options)
 --------------------------------------------------------------------------------
 
 export
-customToJSON : Options -> List Name -> ParamTypeInfo -> Res (List TopLevel)
-customToJSON o nms p =
+customToJSON :
+     Visibility
+  -> Options
+  -> List Name
+  -> ParamTypeInfo
+  -> Res (List TopLevel)
+customToJSON vis o nms p =
   let fun  := funName p "toJson"
       impl := implName p "ToJSON"
    in Right
-        [ TL (toJsonClaim fun p) (toJsonDef nms o fun p.info)
-        , TL (toJsonImplClaim impl p) (toJsonImplDef fun impl)
+        [ TL (toJsonClaim vis fun p) (toJsonDef nms o fun p.info)
+        , TL (toJsonImplClaim vis impl p) (toJsonImplDef fun impl)
         ]
 
 ||| Generate declarations and implementations for `ToJSON` for a given data type
 ||| using default settings.
 export %inline
 ToJSON : List Name -> ParamTypeInfo -> Res (List TopLevel)
-ToJSON = customToJSON defaultOptions
+ToJSON = customToJSON Export defaultOptions

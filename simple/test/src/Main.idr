@@ -49,7 +49,7 @@ data Sum2 : (a : Type) -> Type where
 opts2 : Options
 opts2 = MkOptions UntaggedValue False True id id
 
-%runElab derive "Sum2" [Show,Eq,customToJSON opts2, customFromJSON opts2]
+%runElab derive "Sum2" [Show,Eq,customToJSON Export opts2, customFromJSON Export opts2]
 
 -- this sum type will be encoded as `Sum` but instead of adding
 -- a "tag" for the constructor name, it will be wrapped up
@@ -64,7 +64,7 @@ data Sum3 : (a : Type) -> Type where
 opts3 : Options
 opts3 = MkOptions ObjectWithSingleField False True id id
 
-%runElab derive "Sum3" [Show,Eq,customToJSON opts3, customFromJSON opts3]
+%runElab derive "Sum3" [Show,Eq,customToJSON Export opts3, customFromJSON Export opts3]
 
 -- this sum will be encoded as an array of two elements:
 -- the first corresponding to the constructor name, the second
@@ -78,7 +78,7 @@ data Sum4 : (a : Type) -> Type where
 opts4 : Options
 opts4 = MkOptions TwoElemArray False True id id
 
-%runElab derive "Sum4" [Show,Eq,customToJSON opts4, customFromJSON opts4]
+%runElab derive "Sum4" [Show,Eq,customToJSON Export opts4, customFromJSON Export opts4]
 
 -- this sum will be encoded as a tagged object with custom
 -- names for the tag and content field
@@ -91,7 +91,7 @@ data Sum5 : (a : Type) -> Type where
 opts5 : Options
 opts5 = MkOptions (TaggedObject "v" "c") False True id id
 
-%runElab derive "Sum5" [Show,Eq,customToJSON opts5, customFromJSON opts5]
+%runElab derive "Sum5" [Show,Eq,customToJSON Export opts5, customFromJSON Export opts5]
 
 -- since records have only one constructor, they can be encoded
 -- without having to care about the different techniques to
@@ -114,7 +114,7 @@ record AnotherRecord where
 opts6 : Options
 opts6 = MkOptions (TaggedObject "v" "c") False False id id
 
-%runElab derive "AnotherRecord" [Show,Eq,customToJSON opts6, customFromJSON opts6]
+%runElab derive "AnotherRecord" [Show,Eq,customToJSON Export opts6, customFromJSON Export opts6]
 
 -- enum types (all nullary constructors) can be encoded just
 -- as a string representing the constructor's name

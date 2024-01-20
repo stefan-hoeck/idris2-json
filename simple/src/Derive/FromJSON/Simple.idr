@@ -24,15 +24,15 @@ generalFromJsonType is arg =
 ||| Top-level function declaration implementing the `fromJSON` function for
 ||| the given data type.
 export
-fromJsonClaim : (fun : Name) -> (p : ParamTypeInfo) -> Decl
-fromJsonClaim fun p =
+fromJsonClaim : Visibility -> (fun : Name) -> (p : ParamTypeInfo) -> Decl
+fromJsonClaim vis fun p =
   let tpe := generalFromJsonType (allImplicits p "FromJSON") p.applied
-   in public' fun tpe
+   in simpleClaim vis fun tpe
 
 ||| Top-level declaration of the `FromJSON` implementation for the given data type.
 export
-fromJsonImplClaim : (impl : Name) -> (p : ParamTypeInfo) -> Decl
-fromJsonImplClaim impl p = implClaim impl (implType "FromJSON" p)
+fromJsonImplClaim : Visibility -> (impl : Name) -> (p : ParamTypeInfo) -> Decl
+fromJsonImplClaim vis impl p = implClaimVis vis impl (implType "FromJSON" p)
 
 --------------------------------------------------------------------------------
 --          Definitions
@@ -180,14 +180,19 @@ err : Named a => a -> TTImp
 err v = primVal $ Str $ "Unexpected constructor tag for \{v.nameStr}: "
 
 export
-customFromJSON : Options -> List Name -> ParamTypeInfo -> Res (List TopLevel)
-customFromJSON o nms p =
+customFromJSON :
+     Visibility
+  -> Options
+  -> List Name
+  -> ParamTypeInfo
+  -> Res (List TopLevel)
+customFromJSON vis o nms p =
   let fun  := funName p "fromJson"
       impl := implName p "FromJSON"
    in Right
-        [ TL (fromJsonClaim fun p)
+        [ TL (fromJsonClaim vis fun p)
              (fromJsonDef nms o p.namePrim (err p) fun p.info)
-        , TL (fromJsonImplClaim impl p) (fromJsonImplDef fun impl)
+        , TL (fromJsonImplClaim vis impl p) (fromJsonImplDef fun impl)
         ]
 
 ||| Generate declarations and implementations for
@@ -195,4 +200,4 @@ customFromJSON o nms p =
 ||| using default settings.
 export %inline
 FromJSON : List Name -> ParamTypeInfo -> Res (List TopLevel)
-FromJSON = customFromJSON defaultOptions
+FromJSON = customFromJSON Export defaultOptions
