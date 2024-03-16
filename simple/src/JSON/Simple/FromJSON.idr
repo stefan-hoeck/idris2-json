@@ -219,6 +219,12 @@ export %inline
 withString : Lazy String -> Parser String a -> Parser JSON a
 withString = withValue "String" $ \case JString s => Just s; _ => Nothing
 
+export
+withNull : String -> t -> Parser JSON t
+withNull s x JNull = Right x
+withNull s _ v     =
+  prependContext s $ fail "expexted Null but encountered \{typeOf v}"
+
 export %inline
 eqString : Lazy String -> String -> Parser JSON ()
 eqString n s = withString n $ \s' =>
