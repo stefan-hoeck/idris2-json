@@ -25,7 +25,7 @@ export %inline
 jpair : ToJSON a => Encoder v => String -> a -> (String,v)
 jpair s val = (s, toJSON val)
 
-infixr 8 .=
+export infixr 8 .=
 
 ||| Deprecated: Use `jpair` instead
 export %deprecate %inline
