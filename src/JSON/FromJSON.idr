@@ -196,7 +196,7 @@ export %inline
 prependPath : Result a -> JSONPathElement -> Result a
 prependPath r elem = mapFst (\(path,s) => (elem :: path,s)) r
 
-infixr 9 <?>, .:, .:?, .:!
+export infixr 9 <?>, .:, .:?, .:!
 
 ||| Deprecated: Use `prependPath` instead.
 export %inline %deprecate
