@@ -35,68 +35,33 @@ gorgar : Villain
 gorgar = MkVillain "Gorgar" 2000 Dragon [MkVillain "Igor" 10 Imp []]
 ```
 
-You can give this a try after installing `idris2-json`:
+You can give this a try at the REPL:
 
 ```shell
-rlwrap idris2 -p elab-util -p sop -p json -p contrib README.md
+pack repl docs/src/README.md
 
-Main> :exec putStrLn $ encode gorgar
-Main> :exec printLn $ (decode {a = Villain} (encode gorgar))
+README> :exec putStrLn $ encode gorgar
+README> :exec printLn $ (decode {a = Villain} (encode gorgar))
 ```
 
 More examples can be found in the [tutorial](docs/src/Docs/Tutorial.md).
 
-## Missing Stuff
-
-In aeson it is possible to adjust via an `Option` data type,
-how generically derived implementations of `ToJSON` and `FromJSON`
-behave. Me wants this too! Here's what's still missing:
-
-- [x] Configure generic encoders and decoders
-  - [x] Option for adjusting field names
-  - [x] Option for adjusting constructor names
-  - [x] Option for converting all-nullary sum types
-        directly to strings (instead of tagged objects)
-  - [x] Option for automatically providing `null` when
-        decoding a missing object field
-  - [x] Do not add constructor tag for single-constructor types
-  - [x] Encode newtypes directly (without tags for constructor
-        or field names.
-  - [x] Options, how sum types should be encoded
-    - [x] As a tagged object, with a field for the constructor to
-          be used and a field for the actual values
-    - [x] As an untagged value (constructors will be tried in
-          order when decoding until the first succeeds)
-    - [x] As an object with a single field named after the
-          constructor
-    - [x] As a two element array
-
 ## Dependencies
 
-Besides `base` and `contrib`, the following dependencies are needed to
+Besides `base`, the following dependencies are needed to
 support the automatic deriving of interface implementations:
 
 * [elab-util](https://github.com/stefan-hoeck/idris2-elab-util)
-* [sop](https://github.com/stefan-hoeck/idris2-sop)
+* [parser-json](https://github.com/stefan-hoeck/idris2-parser)
 
 In addition, the test suit requires the following:
 
 * [pretty-show](https://github.com/stefan-hoeck/idris2-pretty-show)
 * [hedgehog](https://github.com/stefan-hoeck/idris2-hedgehog)
 
-## Idris2 Version
-
-Starting from Idris2 version 0.5.1, tagged releases of the same
-minor version number (e.g. 0.5.x) will be made available, while the main
-branch keeps following the Idris2 main branch.
-
-The latest commit is daily tested to build against the current
-HEAD of the Idris compiler. Since Idris2 releases are happening
-rather infrequently at the moment, it is suggested to use
-a package manager like [pack](https://github.com/stefan-hoeck/idris2-pack)
-to install and maintain matching versions of the Idris compiler
-and this library. Pack will also automatically install all
-required dependencies.
+It is nowadays recommended to use a package manager such as
+[pack](https://github.com/stefan-hoeck/idris2-pack) for installing
+and managing your Idris2 dependencies.
 
 ## The json-simple sub-project
 
