@@ -48,7 +48,7 @@ More examples can be found in the [tutorial](docs/src/Docs/Tutorial.md).
 
 ## Dependencies
 
-Besides `base` and `contrib`, the following dependencies are needed to
+Besides `base`, the following dependencies are needed to
 support the automatic deriving of interface implementations:
 
 * [elab-util](https://github.com/stefan-hoeck/idris2-elab-util)
