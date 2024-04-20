@@ -10,6 +10,7 @@ module JSON.ToJSON
 
 import Data.List.Quantifiers as LQ
 import Data.Vect.Quantifiers as VQ
+import Data.SortedMap
 import Data.List1
 import Data.String
 import Data.Vect
@@ -155,6 +156,10 @@ ToJSON a => ToJSON b => ToJSON (Either a b) where
 export
 ToJSON a => ToJSON b => ToJSON (a, b) where
   toJSON (x,y) = array [toJSON x, toJSON y]
+
+export
+ToJSON a => ToJSON (SortedMap String a) where
+  toJSON = object . map (\(key, val) => (key, toJSON {v} val)) . SortedMap.toList
 
 export
 (ps : LQ.All.All (ToJSON . f) ts) => ToJSON (All f ts) where
