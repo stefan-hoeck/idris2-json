@@ -8,7 +8,9 @@
 ||| library
 module JSON.FromJSON
 
+import Data.Either
 import Data.List.Quantifiers as LQ
+import Data.SortedMap
 import Data.Vect.Quantifiers as VQ
 import Derive.Prelude
 import JSON.ToJSON
@@ -566,6 +568,16 @@ LQ.All.All (FromJSON . f) ts => FromJSON (LQ.All.All f ts) where
 export
 VQ.All.All (FromJSON . f) ts => FromJSON (VQ.All.All f ts) where
   fromJSON = withArray "HVect" $ readVQ
+
+export
+FromJSON a => FromJSON (SortedMap String a) where
+  fromJSON object =
+    case pairs <$> getObject object of
+         Just props => maybe (fail "expected an object with string keys and values") Right $
+                         foldr (\(key, val), sortedMap => pure $ insert key !(eitherToMaybe $ fromJSON val) !sortedMap)
+                               (Just SortedMap.empty)
+                               props
+         Nothing => fail "expected an object"
 
 ||| Tries to decode a value encoded as a single field object of the given name.
 |||
