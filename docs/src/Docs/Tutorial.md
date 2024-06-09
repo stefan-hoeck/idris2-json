@@ -27,7 +27,7 @@ import Data.String
 This tutorial will make heavy use of the generic
 interfaces from [idris2-sop](https://github.com/stefan-hoeck/idris2-sop).
 If these concepts are new to you, you can read about
-them in several [tutorial blog posts](https://github.com/stefan-hoeck/idris2-sop/blob/main/src/Doc/Index.md).
+them in several [tutorial blog posts](https://github.com/stefan-hoeck/idris2-sop/blob/main/docs/src/Docs/Index.md).
 Also, if you'd like to learn more about the elaborator scripts
 we use, there are again several
 [tutorials from the elab-util project](https://github.com/stefan-hoeck/idris2-elab-util/blob/main/src/Doc/Index.md).
