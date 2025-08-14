@@ -46,12 +46,12 @@ parameters (nms : List Name) (o : Options)
 
   encValue : BoundArg 2 Regular -> TTImp
   encValue (BA (MkArg _  _ _ t) [x,_] _) =
-    assertIfRec nms t `(toJSON ~(varStr x))
+    assertIfRec nms t `(toJSON ~(var x))
 
   encField : BoundArg 2 RegularNamed -> TTImp
   encField (BA a [x,_]  _) =
     let nm := fieldNamePrim o (argName a)
-     in assertIfRec nms a.type `(jpair ~(nm) ~(varStr x))
+     in assertIfRec nms a.type `(jpair ~(nm) ~(var x))
 
   encArgs : (isRecord : Bool) -> (tag : TTImp) -> ArgInfo -> TTImp
   encArgs _    tag Const         = `(string  ~(tag))
