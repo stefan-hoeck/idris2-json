@@ -6,7 +6,7 @@ version    = 0.5.0
 sourcedir  = "src"
 depends    = base         >= 0.6.0
            , elab-util
-           , parser-json
+           , ilex-json
 
 modules = Derive.FromJSON.Simple
         , Derive.ToJSON.Simple
