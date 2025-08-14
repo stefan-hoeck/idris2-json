@@ -15,9 +15,6 @@ import Derive.Prelude
 import JSON.Parser
 import JSON.Simple.Option
 import JSON.Simple.ToJSON
-import Text.FC
-import Text.Lex.Manual
-import Text.ParseError
 
 %language ElabReflection
 
@@ -60,7 +57,7 @@ f <|> g = \vv => f vv `orElse` g vv
 public export
 data DecodingErr : Type where
   JErr      : JSONErr -> DecodingErr
-  JParseErr : (FileContext,ParseErr)-> DecodingErr
+  JParseErr : ParseError JTok Void -> DecodingErr
 
 %runElab derive "DecodingErr" [Show,Eq]
 
@@ -117,8 +114,8 @@ formatError path msg = "Error in " ++ formatPath path ++ ": " ++ msg
 ||| this might be printed on several lines.
 export
 prettyErr : (input : String) -> DecodingErr -> String
-prettyErr _ (JErr (p,s))  = formatError p s
-prettyErr i (JParseErr (fc,err)) = printParseError i fc err
+prettyErr _ (JErr (p,s))    = formatError p s
+prettyErr i (JParseErr err) = interpolate err
 
 --------------------------------------------------------------------------------
 --          Interface
@@ -244,11 +241,11 @@ withInteger = withValue "Integer" $ \case JInteger d => Just d; _ => Nothing
 
 export
 withIntegerKey : Parser Integer a -> Parser String a
-withIntegerKey f =
-  withKey $ \s =>
-    case tok {e = Void} int (unpack s) of
-      Succ v [] => f v
-      _         => fail "not an integer: \{s}"
+-- withIntegerKey f =
+--   withKey $ \s =>
+--     case tok {e = Void} int (unpack s) of
+--       Succ v [] => f v
+--       _         => fail "not an integer: \{s}"
 
 export
 boundedIntegral :
@@ -389,13 +386,13 @@ export
 FromJSON Double where
   fromJSON = withDouble "Double" Right
 
-export
-FromJSONKey Double where
-  fromKey =
-    withKey $ \s =>
-      case double {e = Void} (unpack s) of
-        Succ v [] => Right v
-        _         => fail "not a floating point number: \{s}"
+-- export
+-- FromJSONKey Double where
+--   fromKey =
+--     withKey $ \s =>
+--       case double {e = Void} (unpack s) of
+--         Succ v [] => Right v
+--         _         => fail "not a floating point number: \{s}"
 
 export
 FromJSON Bits8 where

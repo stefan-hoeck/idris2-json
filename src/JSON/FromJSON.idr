@@ -58,7 +58,7 @@ f <|> g = \vv => f vv `orElse` g vv
 public export
 data DecodingErr : Type where
   JErr      : JSONErr -> DecodingErr
-  JParseErr : (FileContext,ParseErr)-> DecodingErr
+  JParseErr : ParseError JTok Void -> DecodingErr
 
 %runElab derive "DecodingErr" [Show,Eq]
 
@@ -116,8 +116,8 @@ formatError path msg = "Error in " ++ formatPath path ++ ": " ++ msg
 ||| this might be printed on several lines.
 export
 prettyErr : (input : String) -> DecodingErr -> String
-prettyErr _ (JErr (p,s))  = formatError p s
-prettyErr i (JParseErr (fc,err)) = printParseError i fc err
+prettyErr _ (JErr (p,s))    = formatError p s
+prettyErr i (JParseErr err) = interpolate err
 
 --------------------------------------------------------------------------------
 --          Interface
