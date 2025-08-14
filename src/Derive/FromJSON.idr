@@ -38,23 +38,23 @@ fromJsonImplClaim impl p = implClaim impl (implType "FromJSON" p)
 --          Definitions
 --------------------------------------------------------------------------------
 
-val : String
+val : Name
 val = "val"
 
 bval : TTImp
 bval = bindVar val
 
 vval : TTImp
-vval = varStr val
+vval = var val
 
-obj : String
+obj : Name
 obj = "obj"
 
 bobj : TTImp
 bobj = bindVar obj
 
 vobj : TTImp
-vobj = varStr obj
+vobj = var obj
 
 matchArray : SnocList (BoundArg 2 p) -> TTImp -> TTImp
 matchArray [<]                  s = s
@@ -64,7 +64,7 @@ matchArray (sx :< BA _ [_,y] _) s =
 constClause : DCon -> Clause
 constClause c = patClause c.tag c.applied
 
-matchEither : (pat,res : TTImp) -> String -> TTImp
+matchEither : (pat,res : TTImp) -> Name -> TTImp
 matchEither pat res x =
   `(case ~(pat) of
      Right ~(bindVar x) => ~(res)
@@ -98,7 +98,7 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
     where go : SnocList (BoundArg 2 Regular) -> TTImp -> TTImp
           go [<]                    res = res
           go (sx :< (BA a [x,y] _)) res =
-            let pat := assertIfRec nms a.type `(fromJSON ~(varStr y))
+            let pat := assertIfRec nms a.type `(fromJSON ~(var y))
              in go sx (matchEither pat res x)
 
   consts : List DCon -> TTImp

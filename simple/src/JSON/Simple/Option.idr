@@ -133,7 +133,7 @@ dcon o c =
   let xs  := freshNames "x" c.arty
       ys  := freshNames "y" c.arty
       bc  := bindCon c xs
-      ac  := `(Right ~(applyCon c $ map fromString xs))
+      ac  := `(Right ~(applyCon c xs))
       sx  := boundArgs regular c.args [xs,ys]
       tag := constructorTagPrim o c
   in DC c.name bc ac tag $ argInfo sx
