@@ -121,9 +121,15 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
     where
       rhs : DCon -> TTImp
       rhs c = case c.args of
-        Const     => decFields [<] c.applied
-        Fields sx => decFields sx  c.applied
-        Values sx => decValues sx  c.applied
+        Const       => decFields [<] c.applied
+        Fields [<x] => case o.unwrapUnary of
+          True  => `(map ~(var c.name) . fromJSON)
+          False => decFields [<x]  c.applied
+        Values [<x] => case o.unwrapUnary of
+          True  => `(map ~(var c.name) . fromJSON)
+          False => decValues [<x]  c.applied
+        Fields sx   => decFields sx  c.applied
+        Values sx   => decValues sx  c.applied
 
       clause : DCon -> Clause
       clause c =
