@@ -53,7 +53,7 @@ parameters (nms : List Name) (o : Options)
     let nm := fieldNamePrim o (argName a)
      in assertIfRec nms a.type `(jpair ~(nm) ~(var x))
 
-  encArgs : (isRecord : Bool) -> (tag : TTImp) -> ArgInfo -> TTImp
+  encArgs : (unwrapUnary : Bool) -> (tag : TTImp) -> ArgInfo -> TTImp
   encArgs _    tag Const         = `(string  ~(tag))
   encArgs True _   (Fields [<v]) = encValue $ toRegular v
   encArgs True _   (Values [<v]) = encValue v
@@ -61,9 +61,9 @@ parameters (nms : List Name) (o : Options)
   encArgs _    _   (Values sx)   = `(array ~(listOf $ map encValue sx))
 
   encSum : DCon -> TTImp
-  encSum (DC n b _ tag Const) = encArgs False tag Const
+  encSum (DC n b _ tag Const) = encArgs o.unwrapUnary tag Const
   encSum (DC n b _ tag args)  =
-    let flds := encArgs False tag args
+    let flds := encArgs o.unwrapUnary tag args
      in case o.sum of
           UntaggedValue         => flds
           ObjectWithSingleField => `(singleField ~(tag) ~(flds))
@@ -77,7 +77,7 @@ parameters (nms : List Name) (o : Options)
   sumClause fun c = patClause (var fun `app` c.bound) (encSum c)
 
   recClause : (fun : Name) -> DCon -> Clause
-  recClause fun c = patClause (var fun `app` c.bound) (encArgs True c.tag c.args)
+  recClause fun c = patClause (var fun `app` c.bound) (encArgs o.unwrapUnary c.tag c.args)
 
   export
   toJsonClauses : (fun : Name) -> TypeInfo -> List Clause

@@ -59,6 +59,10 @@ record Options where
   ||| How to encode sum types
   sum                        : SumEncoding
 
+  ||| If `True`, the single field from a unary data constructor
+  ||| will be unwrapped.
+  unwrapUnary                : Bool
+
   ||| If `True`, missing keys in a JSON objects will be
   ||| replaced with `Null` during decoding.
   replaceMissingKeysWithNull : Bool
@@ -77,7 +81,7 @@ record Options where
 
 public export
 defaultOptions : Options
-defaultOptions = MkOptions defaultTaggedObject False True id id
+defaultOptions = MkOptions defaultTaggedObject True False True id id
 
 public export
 fieldName : Named a => Options -> a -> String
