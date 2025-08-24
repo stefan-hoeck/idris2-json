@@ -33,6 +33,7 @@ data Sum : (a : Type) -> Type where
   Con2 : (treasure : List a) -> (weight : Bits64) -> Sum a
   Con3 : (foo : Maybe a) -> (bar : Either Bool a) -> Sum a
   Con4 : (map : SortedMap Nat Bool) -> Sum a
+  Con5 : Either Bool String -> Sum a
 
 %runElab derive "Sum" [Show,Eq,ToJSON,FromJSON]
 
@@ -45,9 +46,10 @@ data Sum2 : (a : Type) -> Type where
   Con22 : (treasure : List a) -> (weight : Bits64) -> Sum2 a
   Con23 : (foo : Maybe a) -> (bar : Either Bool a) -> Sum2 a
   Con24 : (map : SortedMap Nat Bool) -> Sum2 a
+  Con25 : Either Bool String -> Sum2 a
 
 opts2 : Options
-opts2 = MkOptions UntaggedValue False True id id
+opts2 = MkOptions UntaggedValue True False True id id
 
 %runElab derive "Sum2" [Show,Eq,customToJSON Export opts2, customFromJSON Export opts2]
 
@@ -60,9 +62,10 @@ data Sum3 : (a : Type) -> Type where
   Con32 : (treasure : List a) -> (weight : Bits64) -> Sum3 a
   Con33 : Maybe a -> Either Bool a -> Sum3 a
   Con34 : (map : SortedMap Nat Bool) -> Sum3 a
+  Con35 : Either Bool String -> Sum3 a
 
 opts3 : Options
-opts3 = MkOptions ObjectWithSingleField False True id id
+opts3 = MkOptions ObjectWithSingleField True False True id id
 
 %runElab derive "Sum3" [Show,Eq,customToJSON Export opts3, customFromJSON Export opts3]
 
@@ -74,9 +77,10 @@ data Sum4 : (a : Type) -> Type where
   Con42 : (treasure : List a) -> (weight : Bits64) -> Sum4 a
   Con43 : Maybe a -> Either Bool a -> Sum4 a
   Con44 : (map : SortedMap Nat Bool) -> Sum4 a
+  Con45 : Either Bool String -> Sum4 a
 
 opts4 : Options
-opts4 = MkOptions TwoElemArray False True id id
+opts4 = MkOptions TwoElemArray True False True id id
 
 %runElab derive "Sum4" [Show,Eq,customToJSON Export opts4, customFromJSON Export opts4]
 
@@ -87,9 +91,10 @@ data Sum5 : (a : Type) -> Type where
   Con52 : (treasure : List a) -> (weight : Bits64) -> Sum5 a
   Con53 : Maybe a -> Either Bool a -> Sum5 a
   Con54 : SortedMap Nat Bool -> Sum5 a
+  Con55 : Either Bool String -> Sum5 a
 
 opts5 : Options
-opts5 = MkOptions (TaggedObject "v" "c") False True id id
+opts5 = MkOptions (TaggedObject "v" "c") True False True id id
 
 %runElab derive "Sum5" [Show,Eq,customToJSON Export opts5, customFromJSON Export opts5]
 
@@ -112,7 +117,7 @@ record AnotherRecord where
   foo     : Either String Bool
 
 opts6 : Options
-opts6 = MkOptions (TaggedObject "v" "c") False False id id
+opts6 = MkOptions (TaggedObject "v" "c") True False False id id
 
 %runElab derive "AnotherRecord" [Show,Eq,customToJSON Export opts6, customFromJSON Export opts6]
 
@@ -138,24 +143,28 @@ toSum2 (Con1 n a f) = Con21 n a f
 toSum2 (Con2 t w)   = Con22 t w
 toSum2 (Con3 f b)   = Con23 f b
 toSum2 (Con4 m)     = Con24 m
+toSum2 (Con5 m)     = Con25 m
 
 toSum3 : Sum a -> Sum3 a
 toSum3 (Con1 n a f) = Con31 n a f
 toSum3 (Con2 t w)   = Con32 t w
 toSum3 (Con3 f b)   = Con33 f b
 toSum3 (Con4 m)     = Con34 m
+toSum3 (Con5 m)     = Con35 m
 
 toSum4 : Sum a -> Sum4 a
 toSum4 (Con1 n a f) = Con41 n a f
 toSum4 (Con2 t w)   = Con42 t w
 toSum4 (Con3 f b)   = Con43 f b
 toSum4 (Con4 m)     = Con44 m
+toSum4 (Con5 m)     = Con45 m
 
 toSum5 : Sum a -> Sum5 a
 toSum5 (Con1 n a f) = Con51 n a f
 toSum5 (Con2 t w)   = Con52 t w
 toSum5 (Con3 f b)   = Con53 f b
 toSum5 (Con4 m)     = Con54 m
+toSum5 (Con5 m)     = Con55 m
 
 bits8All : Gen Bits8
 bits8All = bits8 $ linear 0 255
@@ -227,6 +236,7 @@ sum g = choice
   , [| Con2 (list20 g) bits64All |]
   , [| Con3 (maybe g) (either bool g) |]
   , map Con4 smap
+  , map Con5 (either bool string20Ascii)
   ]
   where
     pair : Gen (Nat,Bool)

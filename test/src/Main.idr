@@ -31,6 +31,7 @@ data Sum : (a : Type) -> Type where
   Con1 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum a
   Con2 : (treasure : List a) -> (weight : Bits64) -> Sum a
   Con3 : (foo : Maybe a) -> (bar : Either Bool a) -> Sum a
+  Con4 : Either Bool String -> Sum a
 
 %runElab derive "Sum" [Show,Eq,ToJSON,FromJSON]
 
@@ -42,6 +43,7 @@ data Sum2 : (a : Type) -> Type where
   Con21 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum2 a
   Con22 : (treasure : List a) -> (weight : Bits64) -> Sum2 a
   Con23 : (foo : Maybe a) -> (bar : Either Bool a) -> Sum2 a
+  Con24 : Either Bool String -> Sum a
 
 opts2 : Options
 opts2 = MkOptions UntaggedValue False True id id
@@ -56,6 +58,7 @@ data Sum3 : (a : Type) -> Type where
   Con31 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum3 a
   Con32 : (treasure : List a) -> (weight : Bits64) -> Sum3 a
   Con33 : Maybe a -> Either Bool a -> Sum3 a
+  Con34 : Either Bool String -> Sum a
 
 opts3 : Options
 opts3 = MkOptions ObjectWithSingleField False True id id
@@ -69,6 +72,7 @@ data Sum4 : (a : Type) -> Type where
   Con41 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum4 a
   Con42 : (treasure : List a) -> (weight : Bits64) -> Sum4 a
   Con43 : Maybe a -> Either Bool a -> Sum4 a
+  Con44 : Either Bool String -> Sum a
 
 opts4 : Options
 opts4 = MkOptions TwoElemArray False True id id
@@ -81,6 +85,7 @@ data Sum5 : (a : Type) -> Type where
   Con51 : (name : String) -> (age : Bits32) -> (female : Bool) -> Sum5 a
   Con52 : (treasure : List a) -> (weight : Bits64) -> Sum5 a
   Con53 : Maybe a -> Either Bool a -> Sum5 a
+  Con54 : Either Bool String -> Sum a
 
 opts5 : Options
 opts5 = MkOptions (TaggedObject "v" "c") False True id id
@@ -131,21 +136,25 @@ toSum2 : Sum a -> Sum2 a
 toSum2 (Con1 n a f) = Con21 n a f
 toSum2 (Con2 t w)   = Con22 t w
 toSum2 (Con3 f b)   = Con23 f b
+toSum2 (Con4 x)     = Con24 x
 
 toSum3 : Sum a -> Sum3 a
 toSum3 (Con1 n a f) = Con31 n a f
 toSum3 (Con2 t w)   = Con32 t w
 toSum3 (Con3 f b)   = Con33 f b
+toSum2 (Con4 x)     = Con34 x
 
 toSum4 : Sum a -> Sum4 a
 toSum4 (Con1 n a f) = Con41 n a f
 toSum4 (Con2 t w)   = Con42 t w
 toSum4 (Con3 f b)   = Con43 f b
+toSum2 (Con4 x)     = Con44 x
 
 toSum5 : Sum a -> Sum5 a
 toSum5 (Con1 n a f) = Con51 n a f
 toSum5 (Con2 t w)   = Con52 t w
 toSum5 (Con3 f b)   = Con53 f b
+toSum2 (Con4 x)     = Con54 x
 
 bits8All : Gen Bits8
 bits8All = bits8 $ linear 0 255
@@ -216,6 +225,7 @@ sum g = choice
   [ [| Con1 string20Ascii bits32All bool |]
   , [| Con2 (list20 g) bits64All |]
   , [| Con3 (maybe g) (either bool g) |]
+  , [| Con4 (either bool string20Ascii) |]
   ]
 
 rec : Gen ARecord
