@@ -146,7 +146,7 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
             iCase `(x) implicitFalse (clauses ++ [catch])
 
       untagged : TTImp
-      untagged = foldl (\t,c => `(~(t) <|> ~(rhs c))) (rhs d) ds
+      untagged = foldl (\t,c => `(JSON.Simple.FromJSON.(<|>) ~(t) ~(rhs c))) (rhs d) ds
 
 
   decSum : (constants, withArgs : List DCon) -> TTImp
