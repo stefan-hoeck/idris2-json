@@ -144,14 +144,14 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
             iCase `(x) implicitFalse (clauses ++ [catch])
 
       untagged : TTImp
-      untagged = foldl (\t,c => `(~(t) <|> ~(rhs c))) (rhs d) ds
+      untagged = foldl (\t,c => `(JSON.FromJSON.(<|>) ~(t) ~(rhs c))) (rhs d) ds
 
 
   decSum : (constants, withArgs : List DCon) -> TTImp
   decSum [] []        = `(fail $ "Uninhabited type: " ++ ~(tpeName))
   decSum [] (w :: ws) = withArgs w ws
   decSum cs []        = consts cs
-  decSum cs (w :: ws) = `(~(consts cs) <|> ~(withArgs w ws))
+  decSum cs (w :: ws) = `(JSON.FromJSON.(<|>) ~(consts cs) ~(withArgs w ws))
 
   decRecord : DCon -> TTImp
   decRecord c = case c.args of
