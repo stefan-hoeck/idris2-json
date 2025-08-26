@@ -123,10 +123,10 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
       rhs c = case c.args of
         Const       => decFields [<] c.applied
         Fields [<x] => case o.unwrapUnary of
-          True  => `(map ~(var c.name) . fromJSON)
+          True  => assertIfRec nms x.arg.type `(map ~(var c.name) . fromJSON)
           False => decFields [<x]  c.applied
         Values [<x] => case o.unwrapUnary of
-          True  => `(map ~(var c.name) . fromJSON)
+          True  => assertIfRec nms x.arg.type `(map ~(var c.name) . fromJSON)
           False => decValues [<x]  c.applied
         Fields sx   => decFields sx  c.applied
         Values sx   => decValues sx  c.applied
@@ -156,8 +156,8 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
   decRecord : DCon -> TTImp
   decRecord c = case c.args of
     Const       => consts [c]
-    Fields [<x] => `(map ~(var c.name) . fromJSON)
-    Values [<x] => `(map ~(var c.name) . fromJSON)
+    Fields [<x] => assertIfRec nms x.arg.type `(map ~(var c.name) . fromJSON)
+    Values [<x] => assertIfRec nms x.arg.type `(map ~(var c.name) . fromJSON)
     Fields sx   => decFields sx c.applied
     Values sx   => decValues sx c.applied
 

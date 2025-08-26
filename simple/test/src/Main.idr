@@ -12,6 +12,11 @@ import JSON.Simple.Derive
 --          Elab Deriving
 --------------------------------------------------------------------------------
 
+data Issue54 : Type where
+  I54 : List Issue54 -> Issue54
+
+%runElab derive "Issue54" [ ToJSON, FromJSON ]
+
 -- example newtype
 record Newtype where
   constructor MkNewtype
