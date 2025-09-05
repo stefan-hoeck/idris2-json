@@ -64,7 +64,7 @@ interface Object obj v => Value v obj | v where
   typeOf : v -> String
 
   ||| Tries to convert a string to an intermediare value.
-  parse : Origin -> String -> Either (FileContext,ParseErr) v
+  parse : Origin -> String -> Either (ParseError JSErr) v
 
   ||| Tries to convert a value to an `Object`.
   getObject : v -> Maybe obj

@@ -58,7 +58,7 @@ f <|> g = \vv => f vv `orElse` g vv
 public export
 data DecodingErr : Type where
   JErr      : JSONErr -> DecodingErr
-  JParseErr : (FileContext,ParseErr)-> DecodingErr
+  JParseErr : ParseError JSErr-> DecodingErr
 
 %runElab derive "DecodingErr" [Show,Eq]
 
@@ -112,12 +112,18 @@ export
 formatError : JSONPath -> String -> String
 formatError path msg = "Error in " ++ formatPath path ++ ": " ++ msg
 
+export
+Interpolation DecodingErr where
+  interpolate (JErr (p,s))  = formatError p s
+  interpolate (JParseErr x) = interpolate x
+
 ||| Pretty prints a decoding error. In case of a parsing error,
 ||| this might be printed on several lines.
-export
+|||
+||| DEPRECATED: Use `interpolate` instead
+export %deprecate
 prettyErr : (input : String) -> DecodingErr -> String
-prettyErr _ (JErr (p,s))  = formatError p s
-prettyErr i (JParseErr (fc,err)) = printParseError i fc err
+prettyErr _ = interpolate
 
 --------------------------------------------------------------------------------
 --          Interface
