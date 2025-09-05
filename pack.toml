@@ -28,23 +28,23 @@ ipkg   = "test.ipkg"
 [custom.all.parser]
 type   = "git"
 url    = "https://github.com/stefan-hoeck/idris2-parser"
-commit = "latest:simplify_errs"
+commit = "latest:main"
 ipkg   = "parser.ipkg"
 
 [custom.all.parser-json]
 type   = "git"
 url    = "https://github.com/stefan-hoeck/idris2-parser"
-commit = "latest:simplify_errs"
+commit = "latest:main"
 ipkg   = "json/parser-json.ipkg"
 
 [custom.all.parser-show]
 type   = "git"
 url    = "https://github.com/stefan-hoeck/idris2-parser"
-commit = "latest:simplify_errs"
+commit = "latest:main"
 ipkg   = "show/parser-show.ipkg"
 
 [custom.all.pretty-show]
 type   = "github"
 url    = "https://github.com/stefan-hoeck/idris2-pretty-show"
-commit = "latest:simplify_errs"
+commit = "latest:main"
 ipkg   = "pretty-show.ipkg"
