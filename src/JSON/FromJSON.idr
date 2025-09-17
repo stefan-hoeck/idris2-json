@@ -153,7 +153,7 @@ decodeEitherVia :
   -> {auto _ : FromJSON a}
   -> String
   -> Either String a
-decodeEitherVia v s = mapFst (prettyErr s) $ decodeVia v s
+decodeEitherVia v s = mapFst interpolate $ decodeVia v s
 
 export %inline
 decodeMaybeVia : (0 v : Type) -> Value v obj => FromJSON a => String -> Maybe a

@@ -149,7 +149,7 @@ decode s =
 
 export %inline
 decodeEither : FromJSON a => String -> Either String a
-decodeEither s = mapFst (prettyErr s) $ decode s
+decodeEither s = mapFst interpolate $ decode s
 
 export %inline
 decodeMaybe : FromJSON a => String -> Maybe a
