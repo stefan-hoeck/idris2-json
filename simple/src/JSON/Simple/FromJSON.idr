@@ -15,9 +15,6 @@ import Derive.Prelude
 import JSON.Parser
 import JSON.Simple.Option
 import JSON.Simple.ToJSON
-import Text.FC
-import Text.Lex.Manual
-import Text.ParseError
 
 %language ElabReflection
 
@@ -250,11 +247,11 @@ withInteger = withValue "Integer" $ \case JInteger d => Just d; _ => Nothing
 
 export
 withIntegerKey : Parser Integer a -> Parser String a
-withIntegerKey f =
-  withKey $ \s =>
-    case tok {e = Void} int (unpack s) of
-      Succ v [] => f v
-      _         => fail "not an integer: \{s}"
+-- withIntegerKey f =
+--   withKey $ \s =>
+--     case tok {e = Void} int (unpack s) of
+--       Succ v [] => f v
+--       _         => fail "not an integer: \{s}"
 
 export
 boundedIntegral :
@@ -395,13 +392,13 @@ export
 FromJSON Double where
   fromJSON = withDouble "Double" Right
 
-export
-FromJSONKey Double where
-  fromKey =
-    withKey $ \s =>
-      case double {e = Void} (unpack s) of
-        Succ v [] => Right v
-        _         => fail "not a floating point number: \{s}"
+-- export
+-- FromJSONKey Double where
+--   fromKey =
+--     withKey $ \s =>
+--       case double {e = Void} (unpack s) of
+--         Succ v [] => Right v
+--         _         => fail "not a floating point number: \{s}"
 
 export
 FromJSON Bits8 where
