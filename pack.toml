@@ -25,26 +25,14 @@ type   = "local"
 path   = "simple/test"
 ipkg   = "test.ipkg"
 
-[custom.all.parser]
+[custom.all.ilex]
 type   = "git"
-url    = "https://github.com/stefan-hoeck/idris2-parser"
+url    = "https://github.com/stefan-hoeck/idris2-ilex"
 commit = "latest:main"
-ipkg   = "parser.ipkg"
+ipkg   = "ilex.ipkg"
 
-[custom.all.parser-json]
+[custom.all.ilex-json]
 type   = "git"
-url    = "https://github.com/stefan-hoeck/idris2-parser"
+url    = "https://github.com/stefan-hoeck/idris2-ilex"
 commit = "latest:main"
-ipkg   = "json/parser-json.ipkg"
-
-[custom.all.parser-show]
-type   = "git"
-url    = "https://github.com/stefan-hoeck/idris2-parser"
-commit = "latest:main"
-ipkg   = "show/parser-show.ipkg"
-
-[custom.all.pretty-show]
-type   = "github"
-url    = "https://github.com/stefan-hoeck/idris2-pretty-show"
-commit = "latest:main"
-ipkg   = "pretty-show.ipkg"
+ipkg   = "json/ilex-json.ipkg"
