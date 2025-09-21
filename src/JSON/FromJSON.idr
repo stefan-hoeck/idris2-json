@@ -58,7 +58,7 @@ f <|> g = \vv => f vv `orElse` g vv
 public export
 data DecodingErr : Type where
   JErr      : JSONErr -> DecodingErr
-  JParseErr : ParseError JSErr-> DecodingErr
+  JParseErr : ParseError Void -> DecodingErr
 
 %runElab derive "DecodingErr" [Show,Eq]
 

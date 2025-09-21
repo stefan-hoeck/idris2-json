@@ -15,6 +15,7 @@ import Derive.Prelude
 import JSON.Parser
 import JSON.Simple.Option
 import JSON.Simple.ToJSON
+import Text.ILex
 
 %language ElabReflection
 
@@ -57,7 +58,7 @@ f <|> g = \vv => f vv `orElse` g vv
 public export
 data DecodingErr : Type where
   JErr      : JSONErr -> DecodingErr
-  JParseErr : ParseError JSErr -> DecodingErr
+  JParseErr : ParseError Void -> DecodingErr
 
 %runElab derive "DecodingErr" [Show,Eq]
 
@@ -245,13 +246,17 @@ export
 withInteger : Lazy String -> Parser Integer a -> Parser JSON a
 withInteger = withValue "Integer" $ \case JInteger d => Just d; _ => Nothing
 
+-- Value parser for integers
+pint1 : PVal1 q Void Integer
+pint1 = value Nothing [(decimal, bytes decimal)]
+
 export
 withIntegerKey : Parser Integer a -> Parser String a
--- withIntegerKey f =
---   withKey $ \s =>
---     case tok {e = Void} int (unpack s) of
---       Succ v [] => f v
---       _         => fail "not an integer: \{s}"
+withIntegerKey f =
+  withKey $ \s =>
+    case parseString pint1 Virtual s of
+      Right v => f v
+      Left  _ => fail "not an integer: \{s}"
 
 export
 boundedIntegral :
@@ -392,13 +397,17 @@ export
 FromJSON Double where
   fromJSON = withDouble "Double" Right
 
--- export
--- FromJSONKey Double where
---   fromKey =
---     withKey $ \s =>
---       case double {e = Void} (unpack s) of
---         Succ v [] => Right v
---         _         => fail "not a floating point number: \{s}"
+-- Value parser for floating point numbers
+pdbl1 : PVal1 q Void Double
+pdbl1 = value Nothing [(jsonDouble, txt jdouble)]
+
+export
+FromJSONKey Double where
+  fromKey =
+    withKey $ \s =>
+      case parseString pdbl1 Virtual s of
+        Right v => Right v
+        Left  _ => fail "not a floating point number: \{s}"
 
 export
 FromJSON Bits8 where

@@ -64,11 +64,7 @@ interface Object obj v => Value v obj | v where
   typeOf : v -> String
 
   ||| Tries to convert a string to an intermediare value.
-<<<<<<< HEAD
-  parse : Origin -> String -> Either (ParseError JSErr) v
-=======
-  parse : Origin -> String -> ParseRes Void JTok v
->>>>>>> 0f4fa4c ([ refactor, wip ] use ilex-json for parsing)
+  parse : Origin -> String -> Either (ParseError Void) v
 
   ||| Tries to convert a value to an `Object`.
   getObject : v -> Maybe obj
