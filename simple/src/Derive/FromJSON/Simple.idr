@@ -92,7 +92,7 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
 
   decValues : SnocList (BoundArg 2 Regular) -> (res : TTImp) -> TTImp
   decValues sx res =
-    let nargs := `(fromInteger ~(primVal $ BI $ cast (length sx)))
+    let nargs := `(Prelude.fromInteger ~(primVal $ BI $ cast (length sx)))
         mtch  := matchArray sx `(Nil)
      in `(withArrayN ~(nargs) ~(tpeName) $ \ ~(mtch) => ~(go sx res))
 
