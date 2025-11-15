@@ -283,11 +283,11 @@ boundedIntegralKey lo up =
        then Right $ fromInteger n
        else fail "integer out of bounds: \{show n}"
 
-export %inline
+export
 withArray : Lazy String -> Parser (List JSON) a -> Parser JSON a
 withArray = withValue "Array" $ \case JArray v => Just v; _ => Nothing
 
-export %inline
+export
 withArrayN :
      (n : Nat)
   -> Lazy String
