@@ -59,7 +59,7 @@ vobj = var obj
 matchArray : SnocList (BoundArg 2 p) -> TTImp -> TTImp
 matchArray [<]                  s = s
 matchArray (sx :< BA _ [_,y] _) s =
-  matchArray sx `(~(bindVar y) :: ~(s))
+  matchArray sx `(Data.Vect.(::) ~(bindVar y) ~(s))
 
 constClause : DCon -> Clause
 constClause c = patClause c.tag c.applied
@@ -93,7 +93,7 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
   decValues : SnocList (BoundArg 2 Regular) -> (res : TTImp) -> TTImp
   decValues sx res =
     let nargs := `(Prelude.fromInteger ~(primVal $ BI $ cast (length sx)))
-        mtch  := matchArray sx `(Nil)
+        mtch  := matchArray sx `(Data.Vect.Nil)
      in `(withArrayN ~(nargs) ~(tpeName) $ \ ~(mtch) => ~(go sx res))
 
     where
