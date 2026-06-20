@@ -25,14 +25,7 @@ type   = "local"
 path   = "simple/test"
 ipkg   = "test.ipkg"
 
-[custom.all.ilex]
-type   = "git"
-url    = "https://github.com/stefan-hoeck/idris2-ilex"
-commit = "latest:main"
-ipkg   = "ilex.ipkg"
-
-[custom.all.ilex-json]
-type   = "git"
-url    = "https://github.com/stefan-hoeck/idris2-ilex"
-commit = "latest:main"
-ipkg   = "json/ilex-json.ipkg"
+[custom.all]
+ilex-core.commit = "latest:main"
+ilex.commit      = "latest:main"
+ilex-json.commit = "latest:main"
