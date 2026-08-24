@@ -11,6 +11,7 @@ module JSON.Simple.FromJSON
 import Data.List.Quantifiers as LQ
 import Data.Vect.Quantifiers as VQ
 import Data.SortedMap
+import Data.Singleton
 import Derive.Prelude
 import JSON.Parser
 import JSON.Simple.Option
@@ -541,6 +542,13 @@ FromJSON a => FromJSON (List1 a) where
   fromJSON = withArray "List1" $ \case
     Nil    => fail "expected non-empty list"
     h :: t => traverse fromJSON (h ::: t)
+
+export
+{v : a} -> FromJSON a => ToJSON a => Eq a => FromJSON (Singleton v) where
+  fromJSON x =
+    fromJSON x >>= \val => case v == val of
+      True  => Right (Val v)
+      False => fail "Invalid value. Expected \{encode v}"
 
 sortedMap :
      {auto ord : Ord k}

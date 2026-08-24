@@ -10,6 +10,7 @@ module JSON.Simple.ToJSON
 
 import Data.List.Quantifiers as LQ
 import Data.List1
+import Data.Singleton
 import Data.SortedMap
 import Data.String
 import Data.Vect
@@ -217,3 +218,7 @@ zipAllWith f (px :: pxs) (qx :: qxs) = f px qx :: zipAllWith f pxs qxs
 export
 (ps : VQ.All.All (ToJSON . f) ts) => ToJSON (VQ.All.All f ts) where
   toJSON = JArray . toList . forget . zipAllWith (\_,v => toJSON v) ps
+
+export %inline
+{v : a} -> ToJSON a => ToJSON (Singleton v) where
+  toJSON _ = toJSON v

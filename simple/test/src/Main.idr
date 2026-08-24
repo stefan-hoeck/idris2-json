@@ -1,5 +1,6 @@
 module Main
 
+import Data.Singleton
 import Data.List.Quantifiers as LQ
 import Data.SortedMap
 import Data.Vect.Quantifiers as VQ
@@ -138,6 +139,18 @@ data Weekday =
   | Sunday
 
 %runElab derive "Weekday" [Show,Eq,ToJSON,FromJSON]
+
+Eq (Singleton v) where _ == _ = True
+
+Show a => Show (Singleton {a} v) where
+  showPrec p (Val v) = showCon p "Val" (showArg v)
+
+record Sing where
+  constructor MkSing
+  str : Singleton "3.0"
+  num : Singleton 12
+
+%runElab derive "Sing" [Show,Eq,ToJSON,FromJSON]
 
 --------------------------------------------------------------------------------
 --          Generators
@@ -379,6 +392,9 @@ prop_all = roundTrip @{AllLEq} all
 prop_allv : Property
 prop_allv = roundTrip @{AllVEq} allv
 
+prop_sing : Property
+prop_sing = roundTrip (pure $ MkSing %search %search)
+
 main : IO ()
 main = test . pure $
   MkGroup
@@ -413,4 +429,5 @@ main = test . pure $
     , ("prop_weekday", prop_weekday)
     , ("prop_all", prop_all)
     , ("prop_allv", prop_allv)
+    , ("prop_sing", prop_sing)
     ]
