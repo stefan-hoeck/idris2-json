@@ -210,10 +210,13 @@ unicode16 = noSpecial <$> charc '\0' '\65535'
     noLowSurrogate : Char -> Char
     noLowSurrogate c =
       let idx = ord c
-      in if idx >= 0xDC00 && idx <= 0xDFFF then ' ' else c
+      in if (idx >= 0xDC00 && idx <= 0xDFFF) then ' ' else c
+
+    noBOM : Char -> Char
+    noBOM c = if ord c == 65279 then ' ' else c
 
     noSpecial : Char -> Char
-    noSpecial = noControl . noHighSurrogate . noLowSurrogate
+    noSpecial = noControl . noHighSurrogate . noLowSurrogate . noBOM
 
 doubleE100 : Gen Double
 doubleE100 = double $ exponentialFrom 0 (-1.0e100) 1.0e100
