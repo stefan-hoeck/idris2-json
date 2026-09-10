@@ -140,11 +140,6 @@ data Weekday =
 
 %runElab derive "Weekday" [Show,Eq,ToJSON,FromJSON]
 
-Eq (Singleton v) where _ == _ = True
-
-Show a => Show (Singleton {a} v) where
-  showPrec p (Val v) = showCon p "Val" (showArg v)
-
 record Sing where
   constructor MkSing
   str : Singleton "3.0"
