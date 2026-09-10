@@ -17,6 +17,7 @@ import JSON.Parser
 import JSON.Simple.Option
 import JSON.Simple.ToJSON
 import Text.ILex
+import Text.ILex.State.Regular
 
 %language ElabReflection
 
