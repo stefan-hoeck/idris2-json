@@ -63,9 +63,10 @@ record Options where
   ||| will be unwrapped.
   unwrapUnary                : Bool
 
-  ||| If `True`, missing keys in a JSON objects will be
-  ||| replaced with `Null` during decoding.
-  replaceMissingKeysWithNull : Bool
+  ||| Each field name for which this is true can be omitted
+  ||| and will behave like the value is null. This check
+  ||| occurs before any replacement is done via `fieldNameModifier`
+  replaceMissingKeysWithNull : String -> Bool
 
   ||| If `True`, single constructor data types will be
   ||| encoded without a tag for the constructor name.
@@ -81,7 +82,7 @@ record Options where
 
 public export
 defaultOptions : Options
-defaultOptions = MkOptions defaultTaggedObject True False True id id
+defaultOptions = MkOptions defaultTaggedObject True (const False) True id id
 
 public export
 fieldName : Named a => Options -> a -> String

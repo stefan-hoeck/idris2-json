@@ -79,8 +79,9 @@ parameters (nms : List Name) (o : Options) (tpeName : TTImp) (err : TTImp)
 
   dec : Name -> TTImp
   dec n =
-    let fnm := fieldNamePrim o n
-     in case o.replaceMissingKeysWithNull of
+    let name := fieldName o n
+        fnm := primVal (Str name)
+     in case o.replaceMissingKeysWithNull name of
           True  => `(optField ~(vobj) ~(fnm))
           False => `(field ~(vobj) ~(fnm))
 

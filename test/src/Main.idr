@@ -51,7 +51,7 @@ data Sum2 : (a : Type) -> Type where
   Con24 : Either Bool String -> Sum2 a
 
 opts2 : Options
-opts2 = MkOptions UntaggedValue True False True id id
+opts2 = MkOptions UntaggedValue True (const False) True id id
 
 %runElab derive "Sum2" [Show,Eq,customToJSON opts2, customFromJSON opts2]
 
@@ -66,7 +66,7 @@ data Sum3 : (a : Type) -> Type where
   Con34 : Either Bool String -> Sum3 a
 
 opts3 : Options
-opts3 = MkOptions ObjectWithSingleField True False True id id
+opts3 = MkOptions ObjectWithSingleField True (const False) True id id
 
 %runElab derive "Sum3" [Show,Eq,customToJSON opts3, customFromJSON opts3]
 
@@ -80,7 +80,7 @@ data Sum4 : (a : Type) -> Type where
   Con44 : Either Bool String -> Sum4 a
 
 opts4 : Options
-opts4 = MkOptions TwoElemArray True False True id id
+opts4 = MkOptions TwoElemArray True (const False) True id id
 
 %runElab derive "Sum4" [Show,Eq,customToJSON opts4, customFromJSON opts4]
 
@@ -93,7 +93,7 @@ data Sum5 : (a : Type) -> Type where
   Con54 : Either Bool String -> Sum5 a
 
 opts5 : Options
-opts5 = MkOptions (TaggedObject "v" "c") True False True id id
+opts5 = MkOptions (TaggedObject "v" "c") True (const False) True id id
 
 %runElab derive "Sum5" [Show,Eq,customToJSON opts5, customFromJSON opts5]
 
@@ -116,7 +116,7 @@ record AnotherRecord where
   foo     : Either String Bool
 
 opts6 : Options
-opts6 = MkOptions (TaggedObject "v" "c") True False False id id
+opts6 = MkOptions (TaggedObject "v" "c") True (const False) False id id
 
 %runElab derive "AnotherRecord" [Show,Eq,customToJSON opts6, customFromJSON opts6]
 

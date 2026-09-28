@@ -55,7 +55,7 @@ data Sum2 : (a : Type) -> Type where
   Con25 : Either Bool String -> Sum2 a
 
 opts2 : Options
-opts2 = MkOptions UntaggedValue True False True id id
+opts2 = MkOptions UntaggedValue True (const False) True id id
 
 %runElab derive "Sum2" [Show,Eq,customToJSON Export opts2, customFromJSON Export opts2]
 
@@ -71,7 +71,7 @@ data Sum3 : (a : Type) -> Type where
   Con35 : Either Bool String -> Sum3 a
 
 opts3 : Options
-opts3 = MkOptions ObjectWithSingleField True False True id id
+opts3 = MkOptions ObjectWithSingleField True (const False) True id id
 
 %runElab derive "Sum3" [Show,Eq,customToJSON Export opts3, customFromJSON Export opts3]
 
@@ -86,7 +86,7 @@ data Sum4 : (a : Type) -> Type where
   Con45 : Either Bool String -> Sum4 a
 
 opts4 : Options
-opts4 = MkOptions TwoElemArray True False True id id
+opts4 = MkOptions TwoElemArray True (const False) True id id
 
 %runElab derive "Sum4" [Show,Eq,customToJSON Export opts4, customFromJSON Export opts4]
 
@@ -100,7 +100,7 @@ data Sum5 : (a : Type) -> Type where
   Con55 : Either Bool String -> Sum5 a
 
 opts5 : Options
-opts5 = MkOptions (TaggedObject "v" "c") True False True id id
+opts5 = MkOptions (TaggedObject "v" "c") True (const False) True id id
 
 %runElab derive "Sum5" [Show,Eq,customToJSON Export opts5, customFromJSON Export opts5]
 
@@ -123,7 +123,7 @@ record AnotherRecord where
   foo     : Either String Bool
 
 opts6 : Options
-opts6 = MkOptions (TaggedObject "v" "c") True False False id id
+opts6 = MkOptions (TaggedObject "v" "c") True (const False) False id id
 
 %runElab derive "AnotherRecord" [Show,Eq,customToJSON Export opts6, customFromJSON Export opts6]
 
@@ -146,6 +146,16 @@ record Sing where
   num : Singleton 12
 
 %runElab derive "Sing" [Show,Eq,ToJSON,FromJSON]
+
+record OptionalFields where
+  constructor MkOptF
+  opt : Maybe String
+  field : Maybe Int
+
+optFields : Options
+optFields = MkOptions defaultTaggedObject True ((==) "opt") True id id
+
+%runElab derive "OptionalFields" [Show,Eq,ToJSON, customFromJSON Export optFields]
 
 --------------------------------------------------------------------------------
 --          Generators
@@ -393,6 +403,17 @@ prop_allv = roundTrip @{AllVEq} allv
 prop_sing : Property
 prop_sing = roundTrip (pure $ MkSing %search %search)
 
+prop_optionalField : Property
+prop_optionalField = property1 $ do
+  decode #"{"field": 3}"# === -- missing opt field is ok
+    Right (MkOptF Nothing (Just 3))
+  decode #"{"field": null}"# === -- compulsory field with null value is ok
+    Right (MkOptF Nothing Nothing)
+  decode #"{"opt": "hello", "field": 3}"# === -- both fields is obviously ok
+    Right (MkOptF (Just "hello") (Just 3))
+  decodeMaybe #"{"opt": "hello"}"# === -- missing compulsory field is not ok
+    (Nothing {ty = OptionalFields})
+
 main : IO ()
 main = test . pure $
   MkGroup
@@ -428,4 +449,5 @@ main = test . pure $
     , ("prop_all", prop_all)
     , ("prop_allv", prop_allv)
     , ("prop_sing", prop_sing)
+    , ("prop_optionalField", prop_optionalField)
     ]
