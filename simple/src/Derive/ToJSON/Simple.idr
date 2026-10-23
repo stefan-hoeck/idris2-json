@@ -57,7 +57,7 @@ parameters (nms : List Name) (o : Options)
   encArgs _    tag Const         = `(JString  ~(tag))
   encArgs True _   (Fields [<v]) = encValue $ toRegular v
   encArgs True _   (Values [<v]) = encValue v
-  encArgs _    _   (Fields sx)   = `(JObject ~(listOf $ map encField sx))
+  encArgs _    _   (Fields sx)   = `(JObject (filter (\x => (snd x) /= JNull) ~(listOf $ map encField sx)))
   encArgs _    _   (Values sx)   = `(JArray ~(listOf $ map encValue sx))
 
   encSum : DCon -> TTImp

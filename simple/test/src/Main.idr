@@ -55,7 +55,7 @@ data Sum2 : (a : Type) -> Type where
   Con25 : Either Bool String -> Sum2 a
 
 opts2 : Options
-opts2 = MkOptions UntaggedValue True (const False) True id id
+opts2 = MkOptions UntaggedValue True (const True) True id id
 
 %runElab derive "Sum2" [Show,Eq,customToJSON Export opts2, customFromJSON Export opts2]
 
@@ -71,7 +71,7 @@ data Sum3 : (a : Type) -> Type where
   Con35 : Either Bool String -> Sum3 a
 
 opts3 : Options
-opts3 = MkOptions ObjectWithSingleField True (const False) True id id
+opts3 = MkOptions ObjectWithSingleField True (const True) True id id
 
 %runElab derive "Sum3" [Show,Eq,customToJSON Export opts3, customFromJSON Export opts3]
 
@@ -86,7 +86,7 @@ data Sum4 : (a : Type) -> Type where
   Con45 : Either Bool String -> Sum4 a
 
 opts4 : Options
-opts4 = MkOptions TwoElemArray True (const False) True id id
+opts4 = MkOptions TwoElemArray True (const True) True id id
 
 %runElab derive "Sum4" [Show,Eq,customToJSON Export opts4, customFromJSON Export opts4]
 
@@ -100,7 +100,7 @@ data Sum5 : (a : Type) -> Type where
   Con55 : Either Bool String -> Sum5 a
 
 opts5 : Options
-opts5 = MkOptions (TaggedObject "v" "c") True (const False) True id id
+opts5 = MkOptions (TaggedObject "v" "c") True (const True) True id id
 
 %runElab derive "Sum5" [Show,Eq,customToJSON Export opts5, customFromJSON Export opts5]
 
@@ -123,7 +123,7 @@ record AnotherRecord where
   foo     : Either String Bool
 
 opts6 : Options
-opts6 = MkOptions (TaggedObject "v" "c") True (const False) False id id
+opts6 = MkOptions (TaggedObject "v" "c") True (const True) False id id
 
 %runElab derive "AnotherRecord" [Show,Eq,customToJSON Export opts6, customFromJSON Export opts6]
 
@@ -365,7 +365,7 @@ prop_anotherRec = roundTrip anotherRec
 prop_anotherRecEnc : Property
 prop_anotherRecEnc = property1 $
   encode (MkARec 12 Nothing (Right False)) ===
-  #"{"v":"MkARec","c":{"anInt":12,"perhaps":null,"foo":{"Right":false}}}"#
+  #"{"v":"MkARec","c":{"anInt":12,"foo":{"Right":false}}}"#
 
 prop_newtype : Property
 prop_newtype = roundTrip newtype

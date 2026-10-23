@@ -82,7 +82,7 @@ record Options where
 
 public export
 defaultOptions : Options
-defaultOptions = MkOptions defaultTaggedObject True (const False) True id id
+defaultOptions = MkOptions defaultTaggedObject True (const True) True id id
 
 public export
 fieldName : Named a => Options -> a -> String
